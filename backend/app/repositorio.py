@@ -1,4 +1,4 @@
-
+﻿
 
 
 
@@ -62,11 +62,11 @@ def fecha_actual():
 def motivo_para_unirse(sesion, usuario_id, inscritos, ya_inscrito, hoy=None):
 
     if sesion.usuario_id == usuario_id:
-        return "Eres el creador de esta sesión."
+        return "Eres el creador de esta sesiÃ³n."
     if ya_inscrito:
-        return "Ya estás inscrito en esta sesión."
+        return "Ya estÃ¡s inscrito en esta sesiÃ³n."
     if not sesion.inscripciones_abiertas:
-        return "Las inscripciones están cerradas."
+        return "Las inscripciones estÃ¡n cerradas."
     if sesion.fecha <= (hoy or fecha_actual()):
         return "Solo puedes unirte a sesiones con fecha futura."
     if inscritos >= sesion.cupo:
@@ -78,11 +78,12 @@ def motivo_para_unirse(sesion, usuario_id, inscritos, ya_inscrito, hoy=None):
 def unirse_a_sesion(db, sesion_id, usuario_id, hoy=None):
     
     try:
-        db.execute(text("BEGIN IMMEDIATE"))
+        if getattr(db.bind, 'dialect', None) and db.bind.dialect.name == 'sqlite':
+            db.execute(text('BEGIN IMMEDIATE'))
         sesion = db.get(SesionEstudio, sesion_id, populate_existing=True)
 
         if sesion is None:
-            raise ValueError("La sesión no existe.")
+            raise ValueError("La sesiÃ³n no existe.")
 
         inscritos = db.scalar(select(func.count()).select_from(Inscripcion).where(
             Inscripcion.sesion_id == sesion_id
@@ -99,7 +100,7 @@ def unirse_a_sesion(db, sesion_id, usuario_id, hoy=None):
 
     except IntegrityError:
         db.rollback()
-        raise ValueError("Ya estás inscrito en esta sesión.")
+        raise ValueError("Ya estÃ¡s inscrito en esta sesiÃ³n.")
     except Exception:
         db.rollback()
         raise
@@ -137,7 +138,7 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
 
     resultado = []
     for sesion in sesiones:
-        # casefold permite comparar también nombres con mayúsculas acentuadas.
+        # casefold permite comparar tambiÃ©n nombres con mayÃºsculas acentuadas.
         if nombre.strip().casefold() not in sesion.nombre.casefold():
             continue
         if materia.strip() and materia.strip().casefold() != sesion.materia.casefold():
@@ -217,7 +218,8 @@ def obtener_historial(db, usuario_id):
             "modalidad" : sesion.modalidad,
             "fecha_sesion": sesion.fecha,
             "fecha_inscripcion": fecha_inscripcion,
-            "resultado": "Inscripción registrada",
+            "resultado": "InscripciÃ³n registrada",
         })
 
     return historial
+

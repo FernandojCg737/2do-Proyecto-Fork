@@ -54,3 +54,6 @@ design
 # Datos locales y archivos temporales de las pruebas visuales
 backend/data/*.db*
 backend/.evidencias_tmp/
+
+database/pgdata/
+database/*.db*

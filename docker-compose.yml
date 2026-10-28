@@ -1,0 +1,81 @@
+﻿# ============================================================
+#  StudyMatch (Fork) - Docker Compose
+#  Arquitectura: 
+#    1. db:       PostgreSQL 16 (en carpeta externa database/)
+#    2. backend:  FastAPI
+#    3. frontend: React (Vite)
+# ============================================================
+
+name: studymatch-fork
+
+services:
+
+  # 1. Base de Datos Independiente (PostgreSQL 16)
+  db:
+    image: postgres:16-alpine
+    container_name: studymatch_fork_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: studymatch
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: studymatch123
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./database/pgdata:/var/lib/postgresql/data
+    networks:
+      - studymatch_fork_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d studymatch"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  # 2. Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: studymatch_fork_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:studymatch123@db:5432/studymatch
+      - SECRET_KEY=studymatch_secret_key_desarrollo_2026_ihc
+      - ALGORITHM=HS256
+      - TOKEN_EXPIRE_HOURS=24
+      - ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/venv
+    command: sh -c "python seed_data.py && uvicorn main:app --host 0.0.0.0 --port 8000"
+    networks:
+      - studymatch_fork_net
+
+  # 3. Frontend React (Vite)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: studymatch_fork_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      backend:
+        condition: service_started
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - studymatch_fork_net
+
+networks:
+  studymatch_fork_net:
+    name: studymatch_fork_net
+    driver: bridge
