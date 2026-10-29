@@ -40,3 +40,18 @@ class SesionDeEstudio(BaseModel):
         if valor not in ("presencial", "virtual"):
             raise ValueError("Elige presencial o virtual.")
         return valor
+
+
+# --- TAREA 5: Esquema de validación para responder solicitudes ---
+# Valida el payload JSON que envía el organizador desde la interfaz o API.
+class ResponderSolicitud(BaseModel):
+    decision: str  # Campo que contiene la acción deseada ('aceptar' o 'rechazar')
+
+    # Validador para asegurar que no se envíen valores diferentes a los permitidos
+    @field_validator("decision")
+    @classmethod
+    def validar_decision(cls, valor):
+        valor = valor.strip().lower()
+        if valor not in ("aceptar", "rechazar"):
+            raise ValueError("La decisión debe ser 'aceptar' o 'rechazar'.")
+        return valor

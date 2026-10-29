@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
@@ -19,6 +19,14 @@ def seed():
     inicializar_db()
 
     with Session(engine) as db:
+        # --- TAREA 5: Verificación de persistencia ---
+        # Si la base de datos ya tiene usuarios, se conservan los datos existentes
+        # (solicitudes respondidas, nuevas solicitudes) sin borrarlos al reiniciar Docker.
+        hay_usuarios = db.query(Usuario).count() > 0
+        if hay_usuarios and "--force" not in sys.argv:
+            print("[*] Base de datos ya contiene datos. Persistencia activa.")
+            return
+
         print("[*] Limpiando datos anteriores para carga limpia...")
         db.query(Inscripcion).delete()
         db.query(SesionEstudio).delete()
@@ -53,8 +61,8 @@ def seed():
 
         sesiones = [
             SesionEstudio(
-                nombre="Taller Práctico de Heurísticas de Nielsen",
-                materia="Interacción Hombre-Computador",
+                nombre="Taller Practico de Heuristicas de Nielsen",
+                materia="Interaccion Hombre-Computador",
                 fecha=hoy + timedelta(days=2),
                 modalidad="virtual",
                 cupo=6,
@@ -62,7 +70,7 @@ def seed():
                 usuario_id=u_carlos.id
             ),
             SesionEstudio(
-                nombre="Preparación para el Parcial de Árboles y Grafos",
+                nombre="Preparacion para el Parcial de Arboles y Grafos",
                 materia="Estructuras de Datos",
                 fecha=hoy + timedelta(days=3),
                 modalidad="presencial",
@@ -71,8 +79,8 @@ def seed():
                 usuario_id=u_ana.id
             ),
             SesionEstudio(
-                nombre="Repaso General de Límites y Derivadas",
-                materia="Cálculo I",
+                nombre="Repaso General de Limites y Derivadas",
+                materia="Calculo I",
                 fecha=hoy + timedelta(days=1),
                 modalidad="virtual",
                 cupo=10,
@@ -80,8 +88,8 @@ def seed():
                 usuario_id=u_fernando.id
             ),
             SesionEstudio(
-                nombre="Arquitectura de Software y Patrones de Diseño",
-                materia="Ingeniería de Software",
+                nombre="Arquitectura de Software y Patrones de Diseno",
+                materia="Ingenieria de Software",
                 fecha=hoy + timedelta(days=5),
                 modalidad="presencial",
                 cupo=5,
@@ -98,7 +106,7 @@ def seed():
                 usuario_id=u_lucia.id
             ),
             SesionEstudio(
-                nombre="Diseño y Normalización de Bases de Datos SQL",
+                nombre="Diseno y Normalizacion de Bases de Datos SQL",
                 materia="Base de Datos",
                 fecha=hoy + timedelta(days=6),
                 modalidad="virtual",
@@ -107,8 +115,8 @@ def seed():
                 usuario_id=u_carlos.id
             ),
             SesionEstudio(
-                nombre="Sesión Extraordinaria de Repaso (Inscripciones Cerradas)",
-                materia="Interacción Hombre-Computador",
+                nombre="Sesion Extraordinaria de Repaso (Inscripciones Cerradas)",
+                materia="Interaccion Hombre-Computador",
                 fecha=hoy + timedelta(days=2),
                 modalidad="presencial",
                 cupo=5,
@@ -123,23 +131,72 @@ def seed():
             db.refresh(s)
         print(f"    -> {len(sesiones)} sesiones de estudio creadas.")
 
-        print("[*] Creando inscripciones...")
+        print("[*] Creando solicitudes e inscripciones (Tarea 5)...")
         ahora_utc = datetime.now(timezone.utc).replace(tzinfo=None)
 
+        # --- TAREA 5: Solicitudes e inscripciones de prueba para los distintos roles y estados ---
         inscripciones = [
-            Inscripcion(usuario_id=u_ana.id, sesion_id=sesiones[0].id, fecha_inscripcion=ahora_utc),
-            Inscripcion(usuario_id=u_fernando.id, sesion_id=sesiones[0].id, fecha_inscripcion=ahora_utc),
-            Inscripcion(usuario_id=u_carlos.id, sesion_id=sesiones[2].id, fecha_inscripcion=ahora_utc),
-            Inscripcion(usuario_id=u_lucia.id, sesion_id=sesiones[2].id, fecha_inscripcion=ahora_utc),
-            Inscripcion(usuario_id=u_brayan.id, sesion_id=sesiones[1].id, fecha_inscripcion=ahora_utc),
-            Inscripcion(usuario_id=u_fernando.id, sesion_id=sesiones[1].id, fecha_inscripcion=ahora_utc),
+            # 1. Sesión de Carlos (IHC): Ana aceptada previamente, Fernando con solicitud pendiente
+            Inscripcion(
+                usuario_id=u_ana.id,
+                sesion_id=sesiones[0].id,
+                estado="aceptada",
+                fecha_inscripcion=ahora_utc - timedelta(hours=2),
+                fecha_respuesta=ahora_utc - timedelta(hours=1),
+            ),
+            Inscripcion(
+                usuario_id=u_fernando.id,
+                sesion_id=sesiones[0].id,
+                estado="pendiente",  # Fernando espera respuesta de Carlos
+                fecha_inscripcion=ahora_utc - timedelta(minutes=30),
+            ),
+
+            # 2. Sesión de Fernando (Cálculo I): Carlos con solicitud pendiente para que Fernando pueda responder
+            Inscripcion(
+                usuario_id=u_carlos.id,
+                sesion_id=sesiones[2].id,
+                estado="pendiente",  # Carlos solicita unirse a la sesión de Fernando
+                fecha_inscripcion=ahora_utc - timedelta(minutes=45),
+            ),
+            Inscripcion(
+                usuario_id=u_lucia.id,
+                sesion_id=sesiones[2].id,
+                estado="aceptada",  # Lucía ya fue aceptada por Fernando
+                fecha_inscripcion=ahora_utc - timedelta(hours=3),
+                fecha_respuesta=ahora_utc - timedelta(hours=2),
+            ),
+
+            # 3. Sesión de Ana (Estructuras de Datos): Brayan y Fernando aceptados
+            Inscripcion(
+                usuario_id=u_brayan.id,
+                sesion_id=sesiones[1].id,
+                estado="aceptada",
+                fecha_inscripcion=ahora_utc - timedelta(hours=4),
+                fecha_respuesta=ahora_utc - timedelta(hours=3),
+            ),
+            Inscripcion(
+                usuario_id=u_fernando.id,
+                sesion_id=sesiones[1].id,
+                estado="aceptada",
+                fecha_inscripcion=ahora_utc - timedelta(hours=5),
+                fecha_respuesta=ahora_utc - timedelta(hours=4),
+            ),
+
+            # 4. Sesión de Brayan (Ing. Software): Solicitud de Fernando rechazada
+            Inscripcion(
+                usuario_id=u_fernando.id,
+                sesion_id=sesiones[3].id,
+                estado="rechazada",  # Muestra en la interfaz cómo se visualiza un rechazo
+                fecha_inscripcion=ahora_utc - timedelta(days=1),
+                fecha_respuesta=ahora_utc - timedelta(hours=12),
+            ),
         ]
 
         db.add_all(inscripciones)
         db.commit()
-        print(f"    -> {len(inscripciones)} inscripciones registradas.")
+        print(f"    -> {len(inscripciones)} solicitudes/inscripciones registradas (pendientes, aceptadas, rechazadas).")
 
-    print("\n[OK] Base de datos poblada exitosamente en studymatch.db!")
+    print('[OK] Base de datos poblada exitosamente!')
 
 if __name__ == "__main__":
     seed()

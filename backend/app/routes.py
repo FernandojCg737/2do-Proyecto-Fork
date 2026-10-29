@@ -7,17 +7,28 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import CambiarPassword, SesionDeEstudio, Login, RecuperarPassword, Registro
+from app.models import (
+    CambiarPassword,
+    Login,
+    RecuperarPassword,
+    Registro,
+    ResponderSolicitud,
+    SesionDeEstudio,
+)
 
 from app.repositorio import (
+    buscar_sesiones,
     cerrar_inscripciones as cerrar_inscripciones_db,
     get_user_by_email,
     guardar_sesion,
     guardar_usuario,
+    listar_mis_solicitudes,
     listar_sesiones,
-    buscar_sesiones,
+    listar_solicitudes_organizador,
+    obtener_historial,
+    responder_solicitud,
+    solicitar_unirse,
     unirse_a_sesion,
-    obtener_historial
 )
 
 from app.services import (
@@ -32,13 +43,11 @@ router = APIRouter()
 
 
 def validar_password(password):
-    
     if not password:
         raise HTTPException(
             status_code=400, 
             detail="La contraseña es obligatoria"
         )
-    
     if len(password.encode("utf-8")) > 72:
         raise HTTPException(
             status_code=400, 
@@ -48,7 +57,6 @@ def validar_password(password):
 
 @router.post("/registro")
 def registrar_usuario(data: Registro, db: Session = Depends(get_db)):
-
     email = normalizar_email(data.email)
 
     if not data.nombre.strip():
@@ -76,7 +84,6 @@ def registrar_usuario(data: Registro, db: Session = Depends(get_db)):
 
 @router.post("/login")
 def iniciar_sesion(data: Login, db: Session = Depends(get_db)):
-
     email = normalizar_email(data.email)
     usuario = get_user_by_email(db, email)
 
@@ -89,13 +96,12 @@ def iniciar_sesion(data: Login, db: Session = Depends(get_db)):
     return {
         "mensaje": "Inicio de sesión correcto.",
         "token": crear_token(email),
-        "usuario": {"nombre": usuario.nombre, "email": usuario.email},
+        "usuario": {"id": usuario.id, "nombre": usuario.nombre, "email": usuario.email},
     }
 
 
 @router.get("/perfil")
 def perfil(usuario=Depends(obtener_usuario_actual)):
-
     return {"nombre": usuario.nombre, "email": usuario.email}
 
 
@@ -111,7 +117,6 @@ def get_all_sesions(
     db: Session = Depends(get_db),
     usuario=Depends(obtener_usuario_actual),
 ):
-    
     try:
         return buscar_sesiones(db, usuario.id, nombre, materia, modalidad,
                                periodo, desde, hasta, disponible)
@@ -122,16 +127,42 @@ def get_all_sesions(
         )
 
 
-
 @router.get("/materias")
 def get_materias(db: Session = Depends(get_db), usuario=Depends(obtener_usuario_actual)):
-
     return sorted(
         {sesion.materia for sesion in listar_sesiones(db)}, 
         key=str.casefold
     )
 
 
+# ==============================================================================
+# --- TAREA 5: Endpoints para el Flujo de Solicitudes y Aprobación ---
+# ==============================================================================
+
+# Endpoint para que el estudiante envíe la solicitud de unión a una sesión
+@router.post("/sesiones/{sesion_id}/solicitar")
+def endpoint_solicitar_unirse(
+    sesion_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 5: El estudiante solicita unirse a una sesión de estudio.
+    La solicitud queda guardada con estado='pendiente' en espera de la aprobación del organizador.
+    """
+    try:
+        # Invoca la regla de negocio para crear la solicitud en la base de datos
+        solicitud = solicitar_unirse(db, sesion_id, usuario.id)
+        return {
+            "mensaje": "Solicitud enviada correctamente. Esperando aprobación del organizador.",
+            "estado": solicitud.estado,
+        }
+    except ValueError as error:
+        # Si no cumple reglas (ej. sin cupo, sesión cerrada, solicitud duplicada) retorna HTTP 400
+        raise HTTPException(status_code=400, detail=str(error))
+
+
+# Endpoint de compatibilidad para inscripciones directas en pruebas heredadas
 @router.post("/sesiones/{sesion_id}/inscribirse")
 def inscribirse(
     sesion_id: int,
@@ -145,8 +176,63 @@ def inscribirse(
             status_code=400, 
             detail=str(error)
         )
-    
     return {"mensaje": "Te inscribiste en la sesión correctamente."}
+
+
+# Endpoint para que el organizador consulte todas las solicitudes recibidas en sus sesiones
+@router.get("/organizador/solicitudes")
+def get_solicitudes_organizador(
+    sesion_id: int | None = None,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 5: Retorna todas las solicitudes pendientes o resueltas de las sesiones creadas por el organizador.
+    """
+    # Consulta en la base de datos las solicitudes dirigidas a este organizador
+    return listar_solicitudes_organizador(db, usuario.id, sesion_id)
+
+
+# Endpoint para que el organizador acepte o rechace una solicitud específica
+@router.post("/solicitudes/{sesion_id}/usuarios/{solicitante_id}/responder")
+def endpoint_responder_solicitud(
+    sesion_id: int,
+    solicitante_id: int,
+    data: ResponderSolicitud,  # Valida que data.decision sea 'aceptar' o 'rechazar'
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 5: El organizador acepta o rechaza una solicitud.
+    Si acepta, se descuenta un cupo disponible. La decisión queda guardada de forma persistente.
+    """
+    try:
+        # Ejecuta la decisión verificando que quien responde sea el organizador de la sesión
+        inscripcion = responder_solicitud(db, sesion_id, solicitante_id, usuario.id, data.decision)
+        verbo = "aceptada" if data.decision == "aceptar" else "rechazada"
+        return {
+            "mensaje": f"Solicitud {verbo} correctamente.",
+            "estado": inscripcion.estado,
+        }
+    except PermissionError as error:
+        # Si un usuario intenta responder una sesión ajena, se niega el acceso con HTTP 403 Forbidden
+        raise HTTPException(status_code=403, detail=str(error))
+    except ValueError as error:
+        # Errores de validación (sesión inexistente, sin cupos, etc.)
+        raise HTTPException(status_code=400, detail=str(error))
+
+
+# Endpoint para que el estudiante consulte sus propias solicitudes enviadas
+@router.get("/mis-solicitudes")
+def get_mis_solicitudes(
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 5: Retorna todas las solicitudes enviadas por el estudiante logueado y su estado actual.
+    El estudiante puede consultar el estado en cualquier momento tras recargar la página.
+    """
+    return listar_mis_solicitudes(db, usuario.id)
 
 
 @router.post("/logout")
@@ -156,7 +242,6 @@ def cerrar_sesion(usuario=Depends(obtener_usuario_actual)):
 
 @router.post("/recuperar-password")
 def recuperar_password(data: RecuperarPassword, db: Session = Depends(get_db)):
-
     usuario = get_user_by_email(db, normalizar_email(data.email))
 
     if not usuario:
@@ -177,7 +262,6 @@ def recuperar_password(data: RecuperarPassword, db: Session = Depends(get_db)):
 
 @router.post("/cambiar-password")
 def cambiar_password(data: CambiarPassword, db: Session = Depends(get_db)):
-
     usuario = get_user_by_email(db, normalizar_email(data.email))
     
     if not usuario:
@@ -189,7 +273,7 @@ def cambiar_password(data: CambiarPassword, db: Session = Depends(get_db)):
     if not usuario.reset_code or not secrets.compare_digest(data.codigo.strip(), usuario.reset_code):
         raise HTTPException(
             status_code=400, 
-            detail="Código de recuperación no valido"
+            detail="Código de recuperación no válido"
         )
     
     validar_password(data.nueva_password)
@@ -242,11 +326,9 @@ def cerrar_inscripciones(
     return {"mensaje": "Estado de inscripciones modificado correctamente."}
 
 
-
 @router.get("/historial-sesiones")
 def get_historial(
     db: Session = Depends(get_db),
-    usuario = Depends(obtener_usuario_actual),
+    usuario=Depends(obtener_usuario_actual),
 ):
-
     return obtener_historial(db, usuario.id)

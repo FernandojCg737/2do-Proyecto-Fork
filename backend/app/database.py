@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 from pathlib import Path
 from sqlalchemy import create_engine, event, inspect, text
@@ -75,4 +75,21 @@ def inicializar_db():
             tipo_dt = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
             conexion.execute(text(
                 f"ALTER TABLE inscriprciones ADD COLUMN fecha_inscripcion {tipo_dt}"
+            ))
+
+        # --- TAREA 5: Migración automática de la columna 'estado' ---
+        # Si la tabla existente no tiene la columna 'estado', se agrega con valor por defecto 'aceptada'
+        # para preservar compatibilidad con los registros previos de la base de datos.
+        if "estado" not in columnas_inscripciones:
+            tipo_estado = "VARCHAR(20)" if engine.dialect.name == "postgresql" else "TEXT"
+            conexion.execute(text(
+                f"ALTER TABLE inscriprciones ADD COLUMN estado {tipo_estado} NOT NULL DEFAULT 'aceptada'"
+            ))
+
+        # --- TAREA 5: Migración automática de la columna 'fecha_respuesta' ---
+        # Guarda la marca temporal de cuándo el organizador aceptó o rechazó la solicitud.
+        if "fecha_respuesta" not in columnas_inscripciones:
+            tipo_dt = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
+            conexion.execute(text(
+                f"ALTER TABLE inscriprciones ADD COLUMN fecha_respuesta {tipo_dt}"
             ))
