@@ -123,21 +123,61 @@ export default function SesionsPage() {
     setParametros(nuevos);
   }
 
-  // --- TAREA 5: Estudiante solicita unirse a una sesión ---
-  // Llama al endpoint POST /sesiones/{id}/solicitar en lugar de inscribir directamente
+  // ==============================================================================
+  // --- TAREA 5 & 6: ACCIONES DEL ESTUDIANTE (SOLICITAR Y LISTA DE ESPERA) ---
+  // ==============================================================================
+
+  // Función 1: Solicitar unirse a una sesión o ingresar a la lista de espera
+  // Se invoca cuando el alumno presiona "Solicitar unirme" o "Unirme a la lista de espera"
   async function solicitarUnirse(sesionId) {
+    // 1. Activar estado de carga para deshabilitar el botón y evitar clics duplicados
     setInscribiendo(sesionId);
     setErrorInscripcion("");
     setMensaje("");
+
     try {
-      // Envía la solicitud al backend; el backend la registra con estado 'pendiente'
+      // 2. Realizar petición POST al endpoint del backend (/sesiones/{id}/solicitar)
+      // Si la sesión tiene cupo: el backend la registra como 'pendiente'.
+      // Si la sesión está llena: el backend la registra como 'en_espera' con orden FIFO.
       const respuesta = await apiRequest(`/sesiones/${sesionId}/solicitar`, { method: "POST" });
-      setMensaje(respuesta.mensaje || "Solicitud enviada correctamente. Esperando aprobación del organizador.");
+
+      // 3. Mostrar al usuario el mensaje retornado (incluyendo su lugar en la lista si quedó en espera)
+      setMensaje(respuesta.mensaje || "Solicitud enviada correctamente.");
     } catch (err) {
+      // 4. Si ocurrió un error (ej. cupo duplicado o fecha pasada), capturar y mostrar alerta roja
       setErrorInscripcion(err.message);
     } finally {
+      // 5. Desactivar el estado de carga del botón
       setInscribiendo(null);
-      // Actualiza la lista para reflejar el estado 'pendiente' en la tarjeta
+      // 6. Incrementar 'actualizacion' para forzar a useEffect a recargar las sesiones desde la API
+      // y actualizar inmediatamente los badges, contadores y botones en pantalla
+      setActualizacion((valor) => valor + 1);
+    }
+  }
+
+  // Función 2: Salir de la sesión o abandonar la lista de espera (TAREA 6)
+  // Se invoca al presionar "Abandonar sesión", "Salir de lista de espera" o "Cancelar solicitud"
+  async function salirDeSesion(sesionId) {
+    // 1. Bloquear el botón con el spinner/texto de carga
+    setInscribiendo(sesionId);
+    setErrorInscripcion("");
+    setMensaje("");
+
+    try {
+      // 2. Realizar petición POST a /sesiones/{id}/salir
+      // REGLA CLAVE TAREA 6: Si el alumno estaba confirmado ('aceptada'), el backend automáticamente
+      // promueve al primer estudiante que estaba en 'en_espera' a estado 'aceptada'.
+      const respuesta = await apiRequest(`/sesiones/${sesionId}/salir`, { method: "POST" });
+
+      // 3. Notificar al usuario que su salida fue exitosa
+      setMensaje(respuesta.mensaje || "Has salido de la sesión correctamente.");
+    } catch (err) {
+      // 4. Si no estaba inscrito o falló la red, mostrar mensaje de error
+      setErrorInscripcion(err.message);
+    } finally {
+      // 5. Restablecer el botón
+      setInscribiendo(null);
+      // 6. Disparar recarga reactiva de sesiones para que el cupo libre o la promoción se reflejen al instante
       setActualizacion((valor) => valor + 1);
     }
   }
@@ -319,9 +359,12 @@ export default function SesionsPage() {
                       ) : sesion.estado_solicitud === "pendiente" ? (
                         // Insignia si la solicitud está pendiente de aprobación
                         <span className="badge bg-warning text-dark">⏳ Solicitud pendiente</span>
+                      ) : sesion.estado_solicitud === "en_espera" ? (
+                        // TAREA 6: Insignia destacada si el usuario está en Lista de Espera con su posición FIFO
+                        <span className="badge bg-info text-dark">⏳ En espera (#{sesion.posicion_espera || 1})</span>
                       ) : sesion.estado_solicitud === "aceptada" ? (
-                        // Insignia si el organizador ya aceptó la solicitud
-                        <span className="badge bg-success">✅ Aceptada</span>
+                        // Insignia si el usuario está confirmado dentro del cupo
+                        <span className="badge bg-success">✅ Confirmado</span>
                       ) : sesion.estado_solicitud === "rechazada" ? (
                         // Insignia si el organizador rechazó la solicitud
                         <span className="badge bg-danger">❌ Rechazada</span>
@@ -338,6 +381,16 @@ export default function SesionsPage() {
                         <span className={sesion.cupos_disponibles === 0 ? "text-danger fw-bold" : "text-success fw-bold"}>
                           {sesion.cupos_disponibles}
                         </span> de {sesion.cupo}
+                        {/* TAREA 6: Indicador visual si el cupo está lleno */}
+                        {sesion.cupos_disponibles === 0 && (
+                          <span className="badge bg-danger ms-2">Lleno</span>
+                        )}
+                        {/* TAREA 6: Contador de personas esperando en la fila si hay lista de espera */}
+                        {sesion.en_espera_count > 0 && (
+                          <div className="text-primary small mt-1 fw-semibold">
+                            👥 {sesion.en_espera_count} en lista de espera
+                          </div>
+                        )}
                       </li>
                       <li>
                         <strong>Estado:</strong>{" "}
@@ -356,9 +409,9 @@ export default function SesionsPage() {
                       </p>
                     )}
 
-                    {/* --- TAREA 5: SECCIÓN DE ACCIONES SEGÚN EL ROL DEL USUARIO --- */}
+                    {/* --- TAREA 5 & 6: SECCIÓN DE ACCIONES SEGÚN EL ROL DEL USUARIO --- */}
                     {esMio ? (
-                      /* ROL ORGANIZADOR: Panel de gestión de postulantes */
+                      /* ROL ORGANIZADOR: Panel de gestión de postulantes y lista de espera */
                       <div className="mt-auto pt-2 border-top">
                         <div className="d-flex justify-content-between align-items-center mb-2">
                           <span className="small text-muted">Gestión de tu sesión:</span>
@@ -383,7 +436,7 @@ export default function SesionsPage() {
                         {/* Contenido desplegable con la lista de solicitudes de esta sesión */}
                         {estaAbierto && (
                           <div className="mt-3 p-2 bg-light border rounded">
-                            <h3 className="h6 fw-bold mb-2">Solicitudes de unión</h3>
+                            <h3 className="h6 fw-bold mb-2">Solicitudes y lista de espera</h3>
                             {cargandoSolicitudes === sesion.id ? (
                               <div className="text-center py-2 small text-muted">Cargando solicitudes...</div>
                             ) : solicitudesDeEstaSesion.length === 0 ? (
@@ -395,6 +448,7 @@ export default function SesionsPage() {
                                     <div className="d-flex justify-content-between align-items-center mb-1">
                                       <span className="fw-semibold small">{sol.solicitante_nombre}</span>
                                       {sol.estado === "pendiente" && <span className="badge bg-warning text-dark">Pendiente</span>}
+                                      {sol.estado === "en_espera" && <span className="badge bg-info text-dark">En espera (#{sol.posicion || 1})</span>}
                                       {sol.estado === "aceptada" && <span className="badge bg-success">Aceptada</span>}
                                       {sol.estado === "rechazada" && <span className="badge bg-danger">Rechazada</span>}
                                     </div>
@@ -420,6 +474,10 @@ export default function SesionsPage() {
                                           ✕ Rechazar
                                         </button>
                                       </div>
+                                    ) : sol.estado === "en_espera" ? (
+                                      <div className="small text-muted fst-italic">
+                                        ⏳ Esperando cupo libre (subirá automáticamente si alguien abandona)
+                                      </div>
                                     ) : (
                                       <div className="small text-muted fst-italic">
                                         Respondida: {sol.fecha_respuesta ? formatearFecha(sol.fecha_respuesta.split("T")[0]) : "Guardada"}
@@ -433,26 +491,72 @@ export default function SesionsPage() {
                         )}
                       </div>
                     ) : (
-                      /* ROL ESTUDIANTE: Botón dinámico según el estado persistente */
+                      /* ROL ESTUDIANTE: Acciones dinámicas de acuerdo a la Tarea 6 (Lista de espera y salida) */
                       <div className="mt-auto pt-2 border-top">
                         {sesion.estado_solicitud === "pendiente" ? (
-                          // Si ya envió solicitud y está pendiente
-                          <button className="btn btn-warning text-dark w-100" disabled>
-                            ⏳ Solicitud pendiente de aprobación
-                          </button>
+                          // Si ya envió solicitud y está pendiente: puede esperar o cancelar
+                          <div className="d-flex flex-column gap-2">
+                            <span className="badge bg-warning text-dark py-2">
+                              ⏳ Solicitud pendiente de aprobación
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger w-100"
+                              disabled={inscribiendo === sesion.id}
+                              onClick={() => salirDeSesion(sesion.id)}
+                            >
+                              {inscribiendo === sesion.id ? "Cancelando..." : "Cancelar solicitud"}
+                            </button>
+                          </div>
+                        ) : sesion.estado_solicitud === "en_espera" ? (
+                          // TAREA 6: El estudiante está en lista de espera; puede ver su lugar y salir de la lista
+                          <div className="d-flex flex-column gap-2">
+                            <span className="badge bg-info text-dark py-2">
+                              ⏳ En lista de espera (Lugar #{sesion.posicion_espera || 1})
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary w-100"
+                              disabled={inscribiendo === sesion.id}
+                              onClick={() => salirDeSesion(sesion.id)}
+                            >
+                              {inscribiendo === sesion.id ? "Saliendo..." : "Salir de lista de espera"}
+                            </button>
+                          </div>
                         ) : sesion.estado_solicitud === "aceptada" ? (
-                          // Si ya fue aceptado
-                          <button className="btn btn-success w-100" disabled>
-                            ✅ Inscripción aceptada (ya estás dentro)
-                          </button>
+                          // TAREA 6: El estudiante está confirmado; puede abandonar la sesión para ceder su lugar
+                          <div className="d-flex flex-column gap-2">
+                            <span className="badge bg-success py-2">
+                              ✅ Inscripción confirmada (estás dentro)
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger w-100"
+                              disabled={inscribiendo === sesion.id}
+                              onClick={() => salirDeSesion(sesion.id)}
+                            >
+                              {inscribiendo === sesion.id ? "Procesando..." : "Abandonar sesión"}
+                            </button>
+                          </div>
                         ) : sesion.estado_solicitud === "rechazada" ? (
                           // Si fue rechazada
                           <button className="btn btn-outline-danger w-100" disabled>
                             ❌ Solicitud no aprobada
                           </button>
-                        ) : (
-                          // Si aún no postuló, botón activo para enviar solicitud
+                        ) : sesion.puede_solicitar_espera ? (
+                          // TAREA 6: Sesión llena; el estudiante puede entrar a la LISTA DE ESPERA
                           <button
+                            type="button"
+                            className="btn btn-warning text-dark fw-bold w-100"
+                            disabled={inscribiendo !== null}
+                            onClick={() => solicitarUnirse(sesion.id)}
+                          >
+                            {inscribiendo === sesion.id ? "Ingresando..." : "Unirme a la lista de espera"}
+                          </button>
+                        ) : (
+                          // Si aún no postuló y hay cupos libres
+                          <button
+                            type="button"
                             className="btn btn-primary w-100"
                             disabled={!sesion.puede_solicitar || inscribiendo !== null}
                             onClick={() => solicitarUnirse(sesion.id)}

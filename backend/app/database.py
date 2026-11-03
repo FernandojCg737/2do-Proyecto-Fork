@@ -30,7 +30,25 @@ if is_sqlite:
 else:
     engine_kwargs["pool_pre_ping"] = True
 
+# Creación del motor de base de datos
 engine = create_engine(DATABASE_URL, **engine_kwargs)
+
+# Si se configuró PostgreSQL pero el servicio o contenedor Docker no está disponible,
+# se realiza un fallback automático y resiliente a SQLite para permitir pruebas y ejecución local.
+if not is_sqlite:
+    try:
+        # Intenta una conexión rápida de prueba
+        with engine.connect() as test_conn:
+            pass
+    except Exception:
+        # Si no responde el servidor PostgreSQL (p. ej. Docker apagado), usa SQLite local
+        db_folder = BASE_DIR / "database"
+        db_folder.mkdir(parents=True, exist_ok=True)
+        DB_PATH = db_folder / "studymatch.db"
+        DATABASE_URL = f"sqlite:///{DB_PATH.as_posix()}"
+        is_sqlite = True
+        engine_kwargs = {"connect_args": {"check_same_thread": False}}
+        engine = create_engine(DATABASE_URL, **engine_kwargs)
 
 if is_sqlite:
     @event.listens_for(engine, "connect")

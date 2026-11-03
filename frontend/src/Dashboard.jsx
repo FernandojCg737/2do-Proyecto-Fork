@@ -95,9 +95,40 @@ export default function Dashboard({ user }) {
     }
   }
 
-  // Filtrado de solicitudes recibidas entre pendientes y resueltas
+  // ==============================================================================
+  // --- TAREA 6: Estudiante abandona sesión o sale de lista de espera desde el Dashboard ---
+  // ==============================================================================
+  async function salirDeSesion(sesionId) {
+    // 1. Bloquea el botón específico de esta tarjeta para evitar dobles envíos
+    setProcesando(`salir-${sesionId}`);
+    setError("");
+    setMensaje("");
+    try {
+      // 2. Llama al endpoint POST /sesiones/{id}/salir
+      // REGLA CLAVE TAREA 6: Si el alumno estaba confirmado ('aceptada'), el backend
+      // ejecuta la promoción atómica del primer estudiante en lista de espera ('en_espera').
+      const res = await apiRequest(`/sesiones/${sesionId}/salir`, { method: "POST" });
+      setMensaje(res.mensaje || "Has salido de la sesión correctamente.");
+
+      // 3. Incrementa el contador 'actualizacion' para forzar a useEffect a recargar
+      // tanto 'misSolicitudes' como 'solicitudesOrganizador' desde el servidor
+      setActualizacion((v) => v + 1);
+    } catch (err) {
+      // 4. Muestra alerta de error en caso de fallo
+      setError(err.message);
+    } finally {
+      // 5. Libera el estado de bloqueo del botón
+      setProcesando(null);
+    }
+  }
+
+  // Filtrado de solicitudes recibidas por el organizador clasificadas por su estado:
+  // - pendientes: Alumnos que esperan respuesta del organizador
+  // - enEspera: Alumnos en lista de espera (sesión llena) que ascenderán automáticamente
+  // - respondidas: Historial de aceptadas o rechazadas previamente
   const pendientesOrganizador = solicitudesOrganizador.filter((s) => s.estado === "pendiente");
-  const respondidasOrganizador = solicitudesOrganizador.filter((s) => s.estado !== "pendiente");
+  const enEsperaOrganizador = solicitudesOrganizador.filter((s) => s.estado === "en_espera");
+  const respondidasOrganizador = solicitudesOrganizador.filter((s) => !["pendiente", "en_espera"].includes(s.estado));
 
   return (
     <div className="row justify-content-center">
@@ -209,6 +240,37 @@ export default function Dashboard({ user }) {
                         </div>
                       )}
 
+                      {/* TAREA 6: Subsección de estudiantes en Lista de Espera */}
+                      {enEsperaOrganizador.length > 0 && (
+                        <div>
+                          <h3 className="h6 text-primary fw-bold mb-2">
+                            En lista de espera ({enEsperaOrganizador.length})
+                          </h3>
+                          <div className="d-flex flex-column gap-2">
+                            {enEsperaOrganizador.map((sol) => (
+                              <div
+                                key={`${sol.sesion_id}-${sol.solicitante_id}`}
+                                className="border rounded p-3 bg-light shadow-sm"
+                              >
+                                <div className="d-flex justify-content-between align-items-start mb-1">
+                                  <div>
+                                    <h4 className="h6 fw-bold mb-0">{sol.solicitante_nombre}</h4>
+                                    <span className="text-muted small">{sol.solicitante_email}</span>
+                                  </div>
+                                  <span className="badge bg-info text-dark">Lugar #{sol.posicion || 1}</span>
+                                </div>
+                                <div className="small text-secondary">
+                                  <strong>Sesión:</strong> {sol.sesion_nombre} ({sol.materia})
+                                </div>
+                                <div className="small text-muted mt-1 fst-italic">
+                                  ℹ️ Ingresará automáticamente a confirmado si un estudiante confirmado sale.
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Subsección: Historial de solicitudes ya resueltas */}
                       {respondidasOrganizador.length > 0 && (
                         <div className="mt-2">
@@ -274,11 +336,13 @@ export default function Dashboard({ user }) {
                         >
                           <div className="d-flex justify-content-between align-items-start mb-1">
                             <h4 className="h6 fw-bold mb-0">{sol.sesion_nombre}</h4>
-                            {/* Insignia del estado de la solicitud según la respuesta del organizador */}
+                            {/* Insignia del estado de la solicitud según la respuesta del organizador y lista de espera */}
                             {sol.estado === "pendiente" ? (
                               <span className="badge bg-warning text-dark">⏳ Pendiente</span>
+                            ) : sol.estado === "en_espera" ? (
+                              <span className="badge bg-info text-dark">⏳ En espera (#{sol.posicion || 1})</span>
                             ) : sol.estado === "aceptada" ? (
-                              <span className="badge bg-success">✅ Aceptada</span>
+                              <span className="badge bg-success">✅ Confirmada</span>
                             ) : (
                               <span className="badge bg-danger">❌ Rechazada</span>
                             )}
@@ -292,6 +356,24 @@ export default function Dashboard({ user }) {
                           {sol.fecha_respuesta && (
                             <div className="small text-muted mt-1 fst-italic">
                               Respondida: {formatearHora(sol.fecha_respuesta)}
+                            </div>
+                          )}
+
+                          {/* TAREA 6: Botón de acción para que el estudiante pueda salir, cancelar o ceder su lugar */}
+                          {["aceptada", "en_espera", "pendiente"].includes(sol.estado) && (
+                            <div className="mt-2 pt-2 border-top text-end">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                disabled={procesando === `salir-${sol.sesion_id}`}
+                                onClick={() => salirDeSesion(sol.sesion_id)}
+                              >
+                                {sol.estado === "en_espera"
+                                  ? "Salir de lista de espera"
+                                  : sol.estado === "aceptada"
+                                  ? "Abandonar sesión"
+                                  : "Cancelar solicitud"}
+                              </button>
                             </div>
                           )}
                         </div>

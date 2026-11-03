@@ -3,10 +3,12 @@ from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.modelos_db import Inscripcion
 from app.models import (
     CambiarPassword,
     Login,
@@ -27,6 +29,7 @@ from app.repositorio import (
     listar_solicitudes_organizador,
     obtener_historial,
     responder_solicitud,
+    salir_de_sesion,
     solicitar_unirse,
     unirse_a_sesion,
 )
@@ -136,29 +139,90 @@ def get_materias(db: Session = Depends(get_db), usuario=Depends(obtener_usuario_
 
 
 # ==============================================================================
-# --- TAREA 5: Endpoints para el Flujo de Solicitudes y Aprobación ---
+# --- TAREA 5 & 6: Endpoints para el Flujo de Solicitudes y Lista de Espera ---
 # ==============================================================================
 
-# Endpoint para que el estudiante envíe la solicitud de unión a una sesión
+# Endpoint HTTP POST: Permite que un estudiante autenticado solicite unirse a una sesión
+# o ingrese a la lista de espera si la capacidad ya está al 100% (cupo lleno).
 @router.post("/sesiones/{sesion_id}/solicitar")
 def endpoint_solicitar_unirse(
-    sesion_id: int,
-    db: Session = Depends(get_db),
-    usuario=Depends(obtener_usuario_actual),
+    sesion_id: int,                          # ID numérico de la sesión en la URL (parámetro de ruta)
+    db: Session = Depends(get_db),           # Inyección de dependencia: sesión activa de la BD
+    usuario=Depends(obtener_usuario_actual),  # Inyección de dependencia: usuario autenticado vía JWT
 ):
     """
-    TAREA 5: El estudiante solicita unirse a una sesión de estudio.
-    La solicitud queda guardada con estado='pendiente' en espera de la aprobación del organizador.
+    TAREA 6 (Defensa):
+    1. Si hay cupo libre: la solicitud se guarda con estado 'pendiente' para aprobación del creador.
+    2. Si el cupo está agotado: entra automáticamente a la LISTA DE ESPERA (estado='en_espera').
+    3. Retorna un JSON con el mensaje amigable, el estado asignado y su posición FIFO en la fila.
     """
     try:
-        # Invoca la regla de negocio para crear la solicitud en la base de datos
+        # Paso 1: Llamar a la función del repositorio pasando la BD, el ID de sesión y el ID del alumno
         solicitud = solicitar_unirse(db, sesion_id, usuario.id)
-        return {
-            "mensaje": "Solicitud enviada correctamente. Esperando aprobación del organizador.",
-            "estado": solicitud.estado,
-        }
+
+        # Paso 2: Evaluar si el estudiante ingresó a la lista de espera (porque la sesión estaba llena)
+        if solicitud.estado == "en_espera":
+            # Paso 3: Consulta SQL para calcular el puesto ordinal (1º, 2º, etc.) en orden FIFO
+            # Cuenta cuántas personas entraron en espera antes (fecha menor) o al mismo tiempo (menor ID)
+            posicion = db.scalar(
+                select(func.count()).select_from(Inscripcion).where(
+                    Inscripcion.sesion_id == sesion_id,
+                    Inscripcion.estado == "en_espera",
+                    or_(
+                        Inscripcion.fecha_inscripcion < solicitud.fecha_inscripcion,
+                        and_(
+                            Inscripcion.fecha_inscripcion == solicitud.fecha_inscripcion,
+                            Inscripcion.usuario_id <= usuario.id
+                        )
+                    )
+                )
+            ) or 1  # Si no hay anteriores, su posición es la número 1
+
+            # Paso 4: Devolver respuesta HTTP exitosa informando el número de turno en la lista
+            return {
+                "mensaje": f"La sesión está llena. Has ingresado a la lista de espera en la posición #{posicion}.",
+                "estado": solicitud.estado,
+                "posicion": posicion,
+            }
+        else:
+            # Paso 5: Si había cupo libre, informar que la solicitud quedó pendiente de aprobación
+            return {
+                "mensaje": "Solicitud enviada correctamente. Esperando aprobación del organizador.",
+                "estado": solicitud.estado,
+            }
     except ValueError as error:
-        # Si no cumple reglas (ej. sin cupo, sesión cerrada, solicitud duplicada) retorna HTTP 400
+        # Paso 6: Si falló alguna regla (ej. solicitud duplicada, sesión cerrada o fecha pasada),
+        # se devuelve un código HTTP 400 (Bad Request) con el mensaje de error explicativo
+        raise HTTPException(status_code=400, detail=str(error))
+
+
+# ==============================================================================
+# --- TAREA 6: Endpoint para Salir de la Sesión y Promover Lista de Espera ---
+# ==============================================================================
+
+# Endpoint HTTP POST: Permite que un estudiante abandone la sesión o cancele su lista de espera
+@router.post("/sesiones/{sesion_id}/salir")
+def endpoint_salir_de_sesion(
+    sesion_id: int,                          # ID numérico de la sesión que el usuario desea abandonar
+    db: Session = Depends(get_db),           # Inyección de dependencia: conexión a la base de datos
+    usuario=Depends(obtener_usuario_actual),  # Inyección de dependencia: datos del usuario logueado
+):
+    """
+    TAREA 6 (Defensa - REGLA CENTRAL):
+    - Si el estudiante que sale estaba CONFIRMADO (ocupaba cupo disponible):
+        * Su registro se elimina liberando el cupo.
+        * El primer estudiante en lista de espera (FIFO) pasa AUTOMÁTICAMENTE a 'aceptada' (confirmado).
+    - Si el estudiante estaba en LISTA DE ESPERA:
+        * Simplemente se retira de la fila sin alterar los cupos de los demás.
+    """
+    try:
+        # Paso 1: Ejecutar la lógica de abandono y promoción atómica en el repositorio
+        resultado = salir_de_sesion(db, sesion_id, usuario.id)
+
+        # Paso 2: Devolver el resultado con el mensaje y detalles de si alguien fue promovido
+        return resultado
+    except ValueError as error:
+        # Paso 3: Si el usuario no estaba inscrito o la sesión no existe, responder con HTTP 400
         raise HTTPException(status_code=400, detail=str(error))
 
 

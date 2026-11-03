@@ -146,7 +146,7 @@ class TestTarea5Solicitudes(PruebaConBaseDeDatos):
         responder_solicitud(self.db, sesion_llena.id, self.estudiante1.id, self.organizador.id, "aceptar")
 
         with self.assertRaisesRegex(ValueError, "No quedan cupos"):
-            solicitar_unirse(self.db, sesion_llena.id, self.estudiante2.id, hoy=self.hoy)
+            solicitar_unirse(self.db, sesion_llena.id, self.estudiante2.id, hoy=self.hoy, permitir_espera=False)
 
     def test_listar_solicitudes_organizador_y_mis_solicitudes(self):
         sesion = self.crear_sesion()

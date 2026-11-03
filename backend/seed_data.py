@@ -123,6 +123,18 @@ def seed():
                 inscripciones_abiertas=False,
                 usuario_id=u_ana.id
             ),
+            # ==============================================================================
+            # --- TAREA 6: Sesión semilla preparada para demostrar la Lista de Espera ---
+            # ==============================================================================
+            SesionEstudio(
+                nombre="Taller Intensivo de Automatizacion E2E con Playwright",
+                materia="Interaccion Hombre-Computador",
+                fecha=hoy + timedelta(days=4),  # Fecha futura válida
+                modalidad="virtual",
+                cupo=1,                         # REGLA TAREA 6: Cupo máximo estricto = 1 persona
+                inscripciones_abiertas=True,    # Inscripciones abiertas por el organizador
+                usuario_id=u_carlos.id          # Carlos Mendoza es el organizador
+            ),
         ]
 
         db.add_all(sesiones)
@@ -189,6 +201,28 @@ def seed():
                 estado="rechazada",  # Muestra en la interfaz cómo se visualiza un rechazo
                 fecha_inscripcion=ahora_utc - timedelta(days=1),
                 fecha_respuesta=ahora_utc - timedelta(hours=12),
+            ),
+
+            # ==============================================================================
+            # --- 5. TAREA 6: Demostración inmediata de la Lista de Espera con Cupo Lleno ---
+            # REGLAS DEMOSTRADAS:
+            # - Cupo máximo = 1.
+            # - Ana Torres tiene estado 'aceptada' (1/1 cupos ocupados -> la sesión está llena).
+            # - Brayan Gonzales tiene estado 'en_espera' con marca de tiempo UTC (Lugar #1 FIFO).
+            # - Si el evaluador entra como Ana y presiona "Abandonar sesión", Brayan ascenderá a confirmado.
+            # ==============================================================================
+            Inscripcion(
+                usuario_id=u_ana.id,
+                sesion_id=sesiones[7].id,
+                estado="aceptada",   # Ana ocupa el único cupo disponible de la sesión
+                fecha_inscripcion=ahora_utc - timedelta(hours=3),
+                fecha_respuesta=ahora_utc - timedelta(hours=2),
+            ),
+            Inscripcion(
+                usuario_id=u_brayan.id,
+                sesion_id=sesiones[7].id,
+                estado="en_espera",  # Brayan entra en lista de espera (Posición ordinal #1 FIFO)
+                fecha_inscripcion=ahora_utc - timedelta(hours=1),
             ),
         ]
 
