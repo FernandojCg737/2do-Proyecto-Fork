@@ -52,14 +52,16 @@ export default function SesionsPage() {
   const [actualizacion, setActualizacion] = useState(0);
 
   // --- TAREA 5: Estados para la gestión de solicitudes por el organizador ---
-  // Guarda el id de la sesión cuyo panel de solicitudes está desplegado
   const [panelAbierto, setPanelAbierto] = useState(null);
-  // Mapa de { [sesionId]: [solicitudes...] } cargadas desde el backend
   const [solicitudesPorSesion, setSolicitudesPorSesion] = useState({});
-  // Indicador de carga cuando se consulta la lista de postulantes
   const [cargandoSolicitudes, setCargandoSolicitudes] = useState(null);
-  // Identificador de la solicitud que se está respondiendo actualmente para bloquear botones duplicados
   const [procesandoRespuesta, setProcesandoRespuesta] = useState(null);
+
+  // --- TAREA 7: Estados para la reprogramación de sesiones con reconfirmación ---
+  const [modalReprogramar, setModalReprogramar] = useState(null);
+  const [reprogFecha, setReprogFecha] = useState("");
+  const [reprogMotivo, setReprogMotivo] = useState("");
+  const [guardandoReprog, setGuardandoReprog] = useState(false);
 
   useEffect(() => {
     let activo = true;
@@ -100,130 +102,171 @@ export default function SesionsPage() {
 
   function aplicarFiltros(event) {
     event.preventDefault();
-    const nuevos = new URLSearchParams();
-    for (const [nombre, valor] of Object.entries(filtros)) {
-      if ((nombre === "desde" || nombre === "hasta") && filtros.periodo !== "rango") continue;
-      if (valor) nuevos.set(nombre, String(valor).trim());
-    }
-    setMensaje("");
-    setErrorInscripcion("");
-    setParametros(nuevos);
+    const nuevosParametros = new URLSearchParams();
+    Object.entries(filtros).forEach(([clave, valor]) => {
+      if (typeof valor === "boolean" && valor) nuevosParametros.set(clave, "true");
+      else if (typeof valor === "string" && valor.trim()) nuevosParametros.set(clave, valor.trim());
+    });
+    setParametros(nuevosParametros);
   }
 
-  function quitarFiltro(nombre) {
-    const nuevos = new URLSearchParams(parametros);
-    nuevos.delete(nombre);
-    if (["periodo", "desde", "hasta"].includes(nombre)) {
-      nuevos.delete("periodo");
-      nuevos.delete("desde");
-      nuevos.delete("hasta");
+  function removerFiltro(nombre) {
+    const nuevosFiltros = { ...filtros };
+    if (nombre === "disponible") nuevosFiltros.disponible = false;
+    else if (nombre === "periodo") {
+      nuevosFiltros.periodo = "";
+      nuevosFiltros.desde = "";
+      nuevosFiltros.hasta = "";
+    } else {
+      nuevosFiltros[nombre] = "";
     }
-    setMensaje("");
-    setErrorInscripcion("");
-    setParametros(nuevos);
+    setFiltros(nuevosFiltros);
+    const nuevosParametros = new URLSearchParams();
+    Object.entries(nuevosFiltros).forEach(([clave, valor]) => {
+      if (typeof valor === "boolean" && valor) nuevosParametros.set(clave, "true");
+      else if (typeof valor === "string" && valor.trim()) nuevosParametros.set(clave, valor.trim());
+    });
+    setParametros(nuevosParametros);
+  }
+
+  function limpiarTodosLosFiltros() {
+    setFiltros({
+      nombre: "",
+      materia: "",
+      modalidad: "",
+      periodo: "",
+      desde: "",
+      hasta: "",
+      disponible: false,
+    });
+    setParametros(new URLSearchParams());
   }
 
   // ==============================================================================
-  // --- TAREA 5 & 6: ACCIONES DEL ESTUDIANTE (SOLICITAR Y LISTA DE ESPERA) ---
+  // --- TAREA 5, 6 & 7: ACCIONES DEL ESTUDIANTE Y ORGANIZADOR ---
   // ==============================================================================
 
-  // Función 1: Solicitar unirse a una sesión o ingresar a la lista de espera
-  // Se invoca cuando el alumno presiona "Solicitar unirme" o "Unirme a la lista de espera"
+  // Solicitar unirse o entrar en lista de espera
   async function solicitarUnirse(sesionId) {
-    // 1. Activar estado de carga para deshabilitar el botón y evitar clics duplicados
     setInscribiendo(sesionId);
     setErrorInscripcion("");
     setMensaje("");
 
     try {
-      // 2. Realizar petición POST al endpoint del backend (/sesiones/{id}/solicitar)
-      // Si la sesión tiene cupo: el backend la registra como 'pendiente'.
-      // Si la sesión está llena: el backend la registra como 'en_espera' con orden FIFO.
       const respuesta = await apiRequest(`/sesiones/${sesionId}/solicitar`, { method: "POST" });
-
-      // 3. Mostrar al usuario el mensaje retornado (incluyendo su lugar en la lista si quedó en espera)
       setMensaje(respuesta.mensaje || "Solicitud enviada correctamente.");
     } catch (err) {
-      // 4. Si ocurrió un error (ej. cupo duplicado o fecha pasada), capturar y mostrar alerta roja
       setErrorInscripcion(err.message);
     } finally {
-      // 5. Desactivar el estado de carga del botón
       setInscribiendo(null);
-      // 6. Incrementar 'actualizacion' para forzar a useEffect a recargar las sesiones desde la API
-      // y actualizar inmediatamente los badges, contadores y botones en pantalla
       setActualizacion((valor) => valor + 1);
     }
   }
 
-  // Función 2: Salir de la sesión o abandonar la lista de espera (TAREA 6)
-  // Se invoca al presionar "Abandonar sesión", "Salir de lista de espera" o "Cancelar solicitud"
+  // Salir de la sesión o retirarse de la fila (TAREA 6 & 7: libera cupo y promueve al primero en espera)
   async function salirDeSesion(sesionId) {
-    // 1. Bloquear el botón con el spinner/texto de carga
     setInscribiendo(sesionId);
     setErrorInscripcion("");
     setMensaje("");
 
     try {
-      // 2. Realizar petición POST a /sesiones/{id}/salir
-      // REGLA CLAVE TAREA 6: Si el alumno estaba confirmado ('aceptada'), el backend automáticamente
-      // promueve al primer estudiante que estaba en 'en_espera' a estado 'aceptada'.
       const respuesta = await apiRequest(`/sesiones/${sesionId}/salir`, { method: "POST" });
-
-      // 3. Notificar al usuario que su salida fue exitosa
       setMensaje(respuesta.mensaje || "Has salido de la sesión correctamente.");
     } catch (err) {
-      // 4. Si no estaba inscrito o falló la red, mostrar mensaje de error
       setErrorInscripcion(err.message);
     } finally {
-      // 5. Restablecer el botón
       setInscribiendo(null);
-      // 6. Disparar recarga reactiva de sesiones para que el cupo libre o la promoción se reflejen al instante
       setActualizacion((valor) => valor + 1);
     }
   }
 
-  // --- TAREA 5: Organizador despliega el panel de solicitudes de su sesión ---
-  // Consulta la lista de postulantes de la sesión seleccionada mediante GET /organizador/solicitudes
+  // TAREA 7: El estudiante reconfirma su participación en la sesión reprogramada
+  async function reconfirmarAsistencia(sesionId) {
+    setInscribiendo(sesionId);
+    setErrorInscripcion("");
+    setMensaje("");
+
+    try {
+      const respuesta = await apiRequest(`/sesiones/${sesionId}/reconfirmar`, { method: "POST" });
+      setMensaje(respuesta.mensaje || "Has reconfirmado tu asistencia exitosamente.");
+    } catch (err) {
+      setErrorInscripcion(err.message);
+    } finally {
+      setInscribiendo(null);
+      setActualizacion((valor) => valor + 1);
+    }
+  }
+
+  // TAREA 7: Abrir el modal para que el organizador reprograme la sesión
+  function abrirModalReprogramar(sesion) {
+    setModalReprogramar(sesion);
+    // Sugerir fecha siguiente a la actual de la sesión
+    setReprogFecha("");
+    setReprogMotivo("");
+    setErrorInscripcion("");
+  }
+
+  // TAREA 7: El organizador guarda la reprogramación (cambia fecha y motivo; confirmados pasan a reconfirmación)
+  async function guardarReprogramacion(e) {
+    e.preventDefault();
+    if (!modalReprogramar) return;
+
+    setGuardandoReprog(true);
+    setErrorInscripcion("");
+    setMensaje("");
+
+    try {
+      const respuesta = await apiRequest(`/sesiones/${modalReprogramar.id}/reprogramar`, {
+        method: "POST",
+        body: JSON.stringify({ fecha: reprogFecha, motivo: reprogMotivo }),
+      });
+      setMensaje(respuesta.mensaje || "Sesión reprogramada exitosamente.");
+      setModalReprogramar(null);
+      setReprogFecha("");
+      setReprogMotivo("");
+    } catch (err) {
+      setErrorInscripcion(err.message);
+    } finally {
+      setGuardandoReprog(false);
+      setActualizacion((valor) => valor + 1);
+    }
+  }
+
+  // Organizador despliega el panel de solicitudes de su sesión
   async function togglePanelSolicitudes(sesionId) {
-    // Si ya está abierto, se colapsa
     if (panelAbierto === sesionId) {
       setPanelAbierto(null);
       return;
     }
-
     setPanelAbierto(sesionId);
-    setCargandoSolicitudes(sesionId);
-    try {
-      // Obtiene los postulantes de esta sesión específica
-      const lista = await apiRequest(`/organizador/solicitudes?sesion_id=${sesionId}`);
-      setSolicitudesPorSesion((prev) => ({ ...prev, [sesionId]: lista }));
-    } catch (err) {
-      setErrorInscripcion(`Error al cargar solicitudes: ${err.message}`);
-    } finally {
-      setCargandoSolicitudes(null);
+    if (!solicitudesPorSesion[sesionId]) {
+      setCargandoSolicitudes(sesionId);
+      try {
+        const datos = await apiRequest(`/organizador/solicitudes?sesion_id=${sesionId}`);
+        setSolicitudesPorSesion((prev) => ({ ...prev, [sesionId]: datos }));
+      } catch (err) {
+        setErrorInscripcion(err.message);
+      } finally {
+        setCargandoSolicitudes(null);
+      }
     }
   }
 
-  // --- TAREA 5: Organizador acepta o rechaza una solicitud ---
-  // Llama al endpoint POST /solicitudes/{sesionId}/usuarios/{solicitanteId}/responder
+  // Responder a una solicitud: aceptar o rechazar
   async function responderSolicitud(sesionId, solicitanteId, decision) {
-    const clave = `${sesionId}-${solicitanteId}`;
-    setProcesandoRespuesta(clave);
+    setProcesandoRespuesta(`${sesionId}-${solicitanteId}`);
     setErrorInscripcion("");
     setMensaje("");
+
     try {
-      // Envía la decisión ('aceptar' o 'rechazar')
-      const res = await apiRequest(`/solicitudes/${sesionId}/usuarios/${solicitanteId}/responder`, {
+      const respuesta = await apiRequest(`/solicitudes/${sesionId}/usuarios/${solicitanteId}/responder`, {
         method: "POST",
         body: JSON.stringify({ decision }),
       });
-      setMensaje(res.mensaje);
-
-      // Vuelve a consultar la lista actualizada de solicitudes para esta sesión
-      const lista = await apiRequest(`/organizador/solicitudes?sesion_id=${sesionId}`);
-      setSolicitudesPorSesion((prev) => ({ ...prev, [sesionId]: lista }));
-      // Dispara recarga de sesiones para que el cupo disponible se actualice en la tarjeta
-      setActualizacion((v) => v + 1);
+      setMensaje(respuesta.mensaje || `Solicitud ${decision === "aceptar" ? "aceptada" : "rechazada"} con éxito.`);
+      const datosActualizados = await apiRequest(`/organizador/solicitudes?sesion_id=${sesionId}`);
+      setSolicitudesPorSesion((prev) => ({ ...prev, [sesionId]: datosActualizados }));
+      setActualizacion((valor) => valor + 1);
     } catch (err) {
       setErrorInscripcion(err.message);
     } finally {
@@ -284,12 +327,29 @@ export default function SesionsPage() {
               Solo puedes unirte a sesiones con fecha futura.
             </p>
           </div>
+          {/* FEEDBACK CLASE 19: No permitir seleccionar fechas pasadas en el rango de búsqueda */}
           {filtros.periodo === "rango" && <>
             <div className="col-md-6">
-              <Input label="Desde" name="desde" type="date" value={filtros.desde} onChange={cambiarFiltro} required />
+              <Input
+                label="Desde"
+                name="desde"
+                type="date"
+                min={new Date().toISOString().split("T")[0]}
+                value={filtros.desde}
+                onChange={cambiarFiltro}
+                required
+              />
             </div>
             <div className="col-md-6">
-              <Input label="Hasta" name="hasta" type="date" min={filtros.desde} value={filtros.hasta} onChange={cambiarFiltro} required />
+              <Input
+                label="Hasta"
+                name="hasta"
+                type="date"
+                min={filtros.desde || new Date().toISOString().split("T")[0]}
+                value={filtros.hasta}
+                onChange={cambiarFiltro}
+                required
+              />
             </div>
           </>}
         </div>
@@ -298,34 +358,33 @@ export default function SesionsPage() {
           {" "}Solo sesiones a las que puedo unirme
         </label>
         <div className="d-flex gap-2 flex-wrap">
-          <button className="btn btn-primary" type="submit">Buscar</button>
-          <button className="btn btn-outline-secondary" type="button" onClick={() => {
-            setFiltros(leerFiltros(new URLSearchParams()));
-            setParametros({});
-            setMensaje("");
-            setErrorInscripcion("");
-          }}>Limpiar filtros</button>
+          <button className="btn btn-primary">Buscar</button>
+          <button type="button" className="btn btn-outline-secondary" onClick={limpiarTodosLosFiltros}>
+            Limpiar filtros
+          </button>
         </div>
       </form>
 
       {/* Chips de filtros activos */}
-      {consulta && <div className="mb-3 d-flex gap-2 flex-wrap" aria-label="Filtros activos">
-        {Array.from(parametros).filter(([nombre]) => nombresFiltros[nombre]).map(([nombre, valor]) => (
-          <button key={nombre} className="btn btn-outline-secondary btn-sm" onClick={() => quitarFiltro(nombre)}
-                  aria-label={`Quitar filtro ${nombresFiltros[nombre]}`}>
-            {nombresFiltros[nombre]}: {textoFiltro(nombre, valor)} ×
-          </button>
-        ))}
-      </div>}
+      <div className="d-flex flex-wrap gap-2 mb-3">
+        {Object.entries(filtros).map(([clave, valor]) => {
+          if (!valor || (typeof valor === "string" && !valor.trim())) return null;
+          return (
+            <span key={clave} className="badge bg-secondary d-inline-flex align-items-center gap-2 p-2">
+              <span>{nombresFiltros[clave] || clave}: {textoFiltro(clave, valor)}</span>
+              <button
+                type="button"
+                className="btn-close btn-close-white"
+                aria-label={`Quitar filtro ${nombresFiltros[clave] || clave}`}
+                onClick={() => removerFiltro(clave)}
+              />
+            </span>
+          );
+        })}
+      </div>
 
-      {/* Alertas de error o éxito */}
-      {error && <div className="mb-3">
-        <Alert type="danger" text={error} />
-        <button type="button" className="btn btn-outline-primary"
-                onClick={() => setActualizacion((valor) => valor + 1)}>
-          Reintentar
-        </button>
-      </div>}
+      {/* Alertas informativas y de error */}
+      {error && <Alert type="danger" text={error} />}
       {errorInscripcion && <Alert type="danger" text={errorInscripcion} />}
       {mensaje && <Alert type="success" text={mensaje} />}
 
@@ -340,9 +399,9 @@ export default function SesionsPage() {
 
         <div className="row g-4">
           {sesiones.map((sesion) => {
-            // Variables de conveniencia según los datos provistos por la API para Tarea 5
             const esMio = sesion.es_organizador;
             const tienePendientes = sesion.solicitudes_pendientes_count > 0;
+            const tieneReconfirmaciones = (sesion.reconfirmaciones_pendientes_count || 0) > 0;
             const estaAbierto = panelAbierto === sesion.id;
             const solicitudesDeEstaSesion = solicitudesPorSesion[sesion.id] || [];
 
@@ -354,19 +413,17 @@ export default function SesionsPage() {
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <span className="badge bg-secondary">{sesion.materia}</span>
                       {esMio ? (
-                        // Insignia si el usuario actual es el organizador
                         <span className="badge bg-primary">👑 Organizador</span>
+                      ) : sesion.estado_solicitud === "pendiente_reconfirmacion" ? (
+                        // TAREA 7: Insignia de reconfirmación requerida tras reprogramación
+                        <span className="badge bg-warning text-dark">⚠️ Requiere reconfirmación</span>
                       ) : sesion.estado_solicitud === "pendiente" ? (
-                        // Insignia si la solicitud está pendiente de aprobación
                         <span className="badge bg-warning text-dark">⏳ Solicitud pendiente</span>
                       ) : sesion.estado_solicitud === "en_espera" ? (
-                        // TAREA 6: Insignia destacada si el usuario está en Lista de Espera con su posición FIFO
                         <span className="badge bg-info text-dark">⏳ En espera (#{sesion.posicion_espera || 1})</span>
                       ) : sesion.estado_solicitud === "aceptada" ? (
-                        // Insignia si el usuario está confirmado dentro del cupo
                         <span className="badge bg-success">✅ Confirmado</span>
                       ) : sesion.estado_solicitud === "rechazada" ? (
-                        // Insignia si el organizador rechazó la solicitud
                         <span className="badge bg-danger">❌ Rechazada</span>
                       ) : null}
                     </div>
@@ -376,30 +433,41 @@ export default function SesionsPage() {
                       <li><strong>Modalidad:</strong> {sesion.modalidad}</li>
                       <li><strong>Fecha:</strong> {formatearFecha(sesion.fecha)}</li>
                       <li>
-                        {/* Cupos disponibles: solo descuentan las solicitudes aceptadas */}
                         <strong>Cupos disponibles:</strong>{" "}
                         <span className={sesion.cupos_disponibles === 0 ? "text-danger fw-bold" : "text-success fw-bold"}>
                           {sesion.cupos_disponibles}
                         </span> de {sesion.cupo}
-                        {/* TAREA 6: Indicador visual si el cupo está lleno */}
                         {sesion.cupos_disponibles === 0 && (
                           <span className="badge bg-danger ms-2">Lleno</span>
                         )}
-                        {/* TAREA 6: Contador de personas esperando en la fila si hay lista de espera */}
                         {sesion.en_espera_count > 0 && (
                           <div className="text-primary small mt-1 fw-semibold">
                             👥 {sesion.en_espera_count} en lista de espera
                           </div>
                         )}
+                        {tieneReconfirmaciones && esMio && (
+                          <div className="text-warning small mt-1 fw-semibold">
+                            ⚠️ {sesion.reconfirmaciones_pendientes_count} en espera de reconfirmar
+                          </div>
+                        )}
                       </li>
                       <li>
                         <strong>Estado:</strong>{" "}
-                        {sesion.inscripciones_abiertas ? (
+                        {/* FEEDBACK CLASE 19: Si la sesión ya pasó, mostrar claramente Inscripciones cerradas */}
+                        {sesion.es_pasada ? (
+                          <span className="text-secondary fw-semibold">Inscripciones cerradas (sesión pasada)</span>
+                        ) : sesion.inscripciones_abiertas ? (
                           <span className="text-success">Inscripciones abiertas</span>
                         ) : (
                           <span className="text-danger">Inscripciones cerradas</span>
                         )}
                       </li>
+                      {/* TAREA 7: Indicador visible si la sesión fue reprogramada */}
+                      {sesion.motivo_reprogramacion && (
+                        <li className="mt-2 p-2 bg-light rounded text-info small">
+                          📅 <strong>Reprogramada:</strong> "{sesion.motivo_reprogramacion}"
+                        </li>
+                      )}
                     </ul>
 
                     {/* Mensaje de motivo cuando la sesión no está disponible */}
@@ -409,9 +477,9 @@ export default function SesionsPage() {
                       </p>
                     )}
 
-                    {/* --- TAREA 5 & 6: SECCIÓN DE ACCIONES SEGÚN EL ROL DEL USUARIO --- */}
+                    {/* --- ACCIONES SEGÚN EL ROL DEL USUARIO --- */}
                     {esMio ? (
-                      /* ROL ORGANIZADOR: Panel de gestión de postulantes y lista de espera */
+                      /* ROL ORGANIZADOR: Panel de gestión de postulantes y reprogramación */
                       <div className="mt-auto pt-2 border-top">
                         <div className="d-flex justify-content-between align-items-center mb-2">
                           <span className="small text-muted">Gestión de tu sesión:</span>
@@ -433,6 +501,19 @@ export default function SesionsPage() {
                           {estaAbierto ? "▲ Cerrar panel de solicitudes" : `▼ Gestionar solicitudes (${sesion.solicitudes_pendientes_count})`}
                         </button>
 
+                        {/* TAREA 7: Botón para Reprogramar sesión */}
+                        {!sesion.es_pasada && (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-info w-100 mt-2"
+                            disabled={tieneReconfirmaciones}
+                            title={tieneReconfirmaciones ? "No se admite otra reprogramación mientras haya reconfirmaciones pendientes." : "Reprogramar fecha y motivo"}
+                            onClick={() => abrirModalReprogramar(sesion)}
+                          >
+                            📅 Reprogramar sesión {tieneReconfirmaciones ? `(Bloqueado: pendientes)` : ""}
+                          </button>
+                        )}
+
                         {/* Contenido desplegable con la lista de solicitudes de esta sesión */}
                         {estaAbierto && (
                           <div className="mt-3 p-2 bg-light border rounded">
@@ -449,12 +530,12 @@ export default function SesionsPage() {
                                       <span className="fw-semibold small">{sol.solicitante_nombre}</span>
                                       {sol.estado === "pendiente" && <span className="badge bg-warning text-dark">Pendiente</span>}
                                       {sol.estado === "en_espera" && <span className="badge bg-info text-dark">En espera (#{sol.posicion || 1})</span>}
+                                      {sol.estado === "pendiente_reconfirmacion" && <span className="badge bg-warning text-dark">Reconfirmación</span>}
                                       {sol.estado === "aceptada" && <span className="badge bg-success">Aceptada</span>}
                                       {sol.estado === "rechazada" && <span className="badge bg-danger">Rechazada</span>}
                                     </div>
                                     <span className="text-muted small mb-2">{sol.solicitante_email}</span>
 
-                                    {/* Botones de acción directa para el organizador si la solicitud es pendiente */}
                                     {sol.estado === "pendiente" ? (
                                       <div className="d-flex gap-2 mt-1">
                                         <button
@@ -476,7 +557,11 @@ export default function SesionsPage() {
                                       </div>
                                     ) : sol.estado === "en_espera" ? (
                                       <div className="small text-muted fst-italic">
-                                        ⏳ Esperando cupo libre (subirá automáticamente si alguien abandona)
+                                        ⏳ En lista de espera (ascenderá automáticamente si alguien sale)
+                                      </div>
+                                    ) : sol.estado === "pendiente_reconfirmacion" ? (
+                                      <div className="small text-warning fst-italic">
+                                        ⚠️ Esperando que el alumno acepte la nueva fecha o se retire
                                       </div>
                                     ) : (
                                       <div className="small text-muted fst-italic">
@@ -491,10 +576,37 @@ export default function SesionsPage() {
                         )}
                       </div>
                     ) : (
-                      /* ROL ESTUDIANTE: Acciones dinámicas de acuerdo a la Tarea 6 (Lista de espera y salida) */
+                      /* ROL ESTUDIANTE: Acciones dinámicas */
                       <div className="mt-auto pt-2 border-top">
-                        {sesion.estado_solicitud === "pendiente" ? (
-                          // Si ya envió solicitud y está pendiente: puede esperar o cancelar
+                        {sesion.estado_solicitud === "pendiente_reconfirmacion" ? (
+                          // TAREA 7: El estudiante debe reconfirmar o retirarse tras reprogramación
+                          <div className="d-flex flex-column gap-2">
+                            <span className="badge bg-warning text-dark py-2">
+                              ⚠️ Sesión reprogramada: requiere reconfirmación
+                            </span>
+                            <div className="small text-muted bg-light p-2 rounded">
+                              {sesion.motivo_reprogramacion ? `Motivo: "${sesion.motivo_reprogramacion}"` : "El organizador actualizó la fecha."} Conservas temporalmente tu cupo.
+                            </div>
+                            <div className="d-flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-success flex-fill py-2 fw-semibold"
+                                disabled={inscribiendo === sesion.id}
+                                onClick={() => reconfirmarAsistencia(sesion.id)}
+                              >
+                                {inscribiendo === sesion.id ? "Aceptando..." : "✅ Aceptar nueva fecha"}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger flex-fill py-2"
+                                disabled={inscribiendo === sesion.id}
+                                onClick={() => salirDeSesion(sesion.id)}
+                              >
+                                {inscribiendo === sesion.id ? "Saliendo..." : "🚪 Retirarme"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : sesion.estado_solicitud === "pendiente" ? (
                           <div className="d-flex flex-column gap-2">
                             <span className="badge bg-warning text-dark py-2">
                               ⏳ Solicitud pendiente de aprobación
@@ -509,7 +621,6 @@ export default function SesionsPage() {
                             </button>
                           </div>
                         ) : sesion.estado_solicitud === "en_espera" ? (
-                          // TAREA 6: El estudiante está en lista de espera; puede ver su lugar y salir de la lista
                           <div className="d-flex flex-column gap-2">
                             <span className="badge bg-info text-dark py-2">
                               ⏳ En lista de espera (Lugar #{sesion.posicion_espera || 1})
@@ -524,7 +635,6 @@ export default function SesionsPage() {
                             </button>
                           </div>
                         ) : sesion.estado_solicitud === "aceptada" ? (
-                          // TAREA 6: El estudiante está confirmado; puede abandonar la sesión para ceder su lugar
                           <div className="d-flex flex-column gap-2">
                             <span className="badge bg-success py-2">
                               ✅ Inscripción confirmada (estás dentro)
@@ -539,12 +649,10 @@ export default function SesionsPage() {
                             </button>
                           </div>
                         ) : sesion.estado_solicitud === "rechazada" ? (
-                          // Si fue rechazada
                           <button className="btn btn-outline-danger w-100" disabled>
                             ❌ Solicitud no aprobada
                           </button>
                         ) : sesion.puede_solicitar_espera ? (
-                          // TAREA 6: Sesión llena; el estudiante puede entrar a la LISTA DE ESPERA
                           <button
                             type="button"
                             className="btn btn-warning text-dark fw-bold w-100"
@@ -554,7 +662,6 @@ export default function SesionsPage() {
                             {inscribiendo === sesion.id ? "Ingresando..." : "Unirme a la lista de espera"}
                           </button>
                         ) : (
-                          // Si aún no postuló y hay cupos libres
                           <button
                             type="button"
                             className="btn btn-primary w-100"
@@ -573,6 +680,86 @@ export default function SesionsPage() {
           })}
         </div>
       </>}
+
+      {/* --- TAREA 7: MODAL DE REPROGRAMACIÓN DE SESIÓN --- */}
+      {modalReprogramar && (
+        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} role="dialog">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content shadow border-0">
+              <form onSubmit={guardarReprogramacion}>
+                <div className="modal-header bg-primary text-white">
+                  <h5 className="modal-title">📅 Reprogramar sesión</h5>
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white"
+                    onClick={() => setModalReprogramar(null)}
+                    aria-label="Cerrar"
+                  />
+                </div>
+                <div className="modal-body">
+                  <p className="mb-2">
+                    Sesión: <strong>{modalReprogramar.nombre}</strong> ({modalReprogramar.materia})
+                  </p>
+                  <p className="text-muted small mb-3">
+                    Fecha actual: <strong>{formatearFecha(modalReprogramar.fecha)}</strong>
+                  </p>
+
+                  <div className="alert alert-warning small mb-3">
+                    ℹ️ <strong>Reglas de Reprogramación (Tarea 7):</strong>
+                    <ul className="mb-0 mt-1 ps-3">
+                      <li>Los participantes confirmados pasarán a <em>pendientes de reconfirmación</em> y conservarán temporalmente su cupo.</li>
+                      <li>Cada uno podrá aceptar la nueva fecha o retirarse.</li>
+                      <li>Mientras haya reconfirmaciones pendientes, <strong>no se admitirá otra reprogramación</strong>.</li>
+                    </ul>
+                  </div>
+
+                  <div className="mb-3">
+                    <label htmlFor="reprog-fecha" className="form-label fw-semibold">Nueva fecha</label>
+                    <input
+                      id="reprog-fecha"
+                      type="date"
+                      className="form-control"
+                      min={new Date(Date.now() + 86400000).toISOString().split("T")[0]}
+                      value={reprogFecha}
+                      onChange={(e) => setReprogFecha(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="mb-3">
+                    <label htmlFor="reprog-motivo" className="form-label fw-semibold">Motivo de la reprogramación</label>
+                    <textarea
+                      id="reprog-motivo"
+                      className="form-control"
+                      rows="3"
+                      placeholder="Indica el motivo (ej. Cruce de horarios con examen de Cálculo)"
+                      value={reprogMotivo}
+                      onChange={(e) => setReprogMotivo(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setModalReprogramar(null)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={guardandoReprog}
+                  >
+                    {guardandoReprog ? "Guardando..." : "Confirmar reprogramación"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       <p className="text-center mt-4">
         <Link to="/dashboard" className="btn btn-outline-secondary">

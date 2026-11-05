@@ -25,6 +25,8 @@ class SesionEstudio(Base):
     cupo = Column(Integer, nullable=False)
     inscripciones_abiertas = Column(Boolean, nullable=False, default=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    # TAREA 7: Motivo por el cual el organizador reprogramó la sesión (si fue reprogramada)
+    motivo_reprogramacion = Column(String, nullable=True)
 
 class Inscripcion(Base):
     __tablename__ = "inscriprciones"

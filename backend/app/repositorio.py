@@ -108,6 +108,9 @@ def solicitar_unirse(db, sesion_id, usuario_id, hoy=None, permitir_espera=True):
         # Si ya fue aceptado, ya forma parte del grupo confirmado
         if inscripcion.estado == "aceptada":
             raise ValueError("Ya estás inscrito en esta sesión.")
+        # TAREA 7: Si está en proceso de reconfirmación, ya tiene su vacante reservada
+        if inscripcion.estado == "pendiente_reconfirmacion":
+            raise ValueError("Ya tienes un cupo en esta sesión (pendiente de reconfirmar).")
         # TAREA 6: Si ya está en la lista de espera, evitar que ocupe dos turnos
         if inscripcion.estado == "en_espera":
             raise ValueError("Ya estás en la lista de espera de esta sesión.")
@@ -116,11 +119,12 @@ def solicitar_unirse(db, sesion_id, usuario_id, hoy=None, permitir_espera=True):
             inscripcion.fecha_inscripcion = ahora_utc
             inscripcion.fecha_respuesta = None
 
-    # Paso 6: Contar cuántos cupos reales están ocupados (únicamente solicitudes aceptadas)
+    # Paso 6: Contar cuántos cupos reales están ocupados
+    # TAREA 7: Los participantes confirmados y los que están en 'pendiente_reconfirmacion' conservan su cupo
     inscritos_aceptados = db.scalar(
         select(func.count()).select_from(Inscripcion).where(
             Inscripcion.sesion_id == sesion_id,
-            Inscripcion.estado == "aceptada"
+            Inscripcion.estado.in_(["aceptada", "pendiente_reconfirmacion"])
         )
     )
 
@@ -193,10 +197,10 @@ def salir_de_sesion(db, sesion_id, usuario_id):
 
     promovido_info = None  # Almacenará los datos del estudiante promovido (si hubo alguno)
 
-    # Paso 5: REGLA CENTRAL TAREA 6:
-    # Si el usuario que salió tenía cupo confirmado ('aceptada'), el cupo quedó libre.
-    # Por lo tanto, el PRIMERO en la fila de espera ingresa automáticamente a confirmado.
-    if estado_anterior == "aceptada":
+    # Paso 5: REGLA CENTRAL TAREA 6 & TAREA 7:
+    # Si el usuario que salió tenía cupo confirmado ('aceptada') O estaba en 'pendiente_reconfirmacion':
+    # Regla IHC Clase 19: 'Cada uno acepta o se retira; retirarse libera el cupo y promueve al primero en espera.'
+    if estado_anterior in ("aceptada", "pendiente_reconfirmacion"):
         # Consulta SQL para seleccionar al primer estudiante en espera por orden de llegada (FIFO)
         primer_en_espera = db.scalars(
             select(Inscripcion)
@@ -210,7 +214,7 @@ def salir_de_sesion(db, sesion_id, usuario_id):
             )
         ).first()  # Obtener el primer postulante de la fila
 
-        # Si hay un estudiante en espera, se le promueve de forma automática e inmediata
+        # Si hay un estudiante en espera, se le promueve de forma automática e inmediata (asciende una sola vez)
         if primer_en_espera is not None:
             primer_en_espera.estado = "aceptada"  # Pasa automáticamente a Confirmado ('aceptada')
             # Marca de tiempo de cuándo el sistema lo promovió automáticamente
@@ -232,6 +236,114 @@ def salir_de_sesion(db, sesion_id, usuario_id):
     }
 
 
+# ==============================================================================
+# --- TAREA 7: REPROGRAMAR SESIÓN CON RECONFIRMACIÓN ---
+# ==============================================================================
+
+def reprogramar_sesion(db, sesion_id, nueva_fecha, motivo, organizador_id, hoy=None):
+    """
+    TAREA 7: REGLA PRINCIPAL IHC CLASE 19 (Defensa paso a paso):
+      1. El organizador cambia fecha u horario e indica el motivo.
+      2. Los participantes confirmados pasan a pendientes de reconfirmación y conservan temporalmente su cupo.
+      3. Mientras haya reconfirmaciones pendientes, no se admite otra reprogramación.
+    """
+    # Paso 1: Validar existencia de la sesión en la base de datos
+    sesion = db.get(SesionEstudio, sesion_id)
+    if sesion is None:
+        raise ValueError("La sesión no existe.")
+
+    # Paso 2: Validar que quien intenta reprogramar sea el organizador creador
+    if sesion.usuario_id != organizador_id:
+        raise ValueError("Solo el organizador de la sesión puede reprogramarla.")
+
+    # Paso 3: Validar que la nueva fecha sea estrictamente futura
+    hoy_referencia = hoy or fecha_actual()
+    if nueva_fecha <= hoy_referencia:
+        raise ValueError("La nueva fecha de la sesión debe ser futura.")
+
+    # Paso 4: Validar que el motivo esté presente y no sea texto en blanco
+    if not motivo or not motivo.strip():
+        raise ValueError("Debes indicar un motivo para la reprogramación.")
+
+    # Paso 5: REGLA CENTRAL TAREA 7:
+    # "Mientras haya reconfirmaciones pendientes, no se admite otra reprogramación."
+    pendientes_reconfirmacion = db.scalar(
+        select(func.count()).select_from(Inscripcion).where(
+            Inscripcion.sesion_id == sesion_id,
+            Inscripcion.estado == "pendiente_reconfirmacion"
+        )
+    ) or 0
+
+    if pendientes_reconfirmacion > 0:
+        raise ValueError("No se admite otra reprogramación mientras existan participantes pendientes de reconfirmar.")
+
+    # Paso 6: Actualizar la fecha y el motivo en la sesión
+    sesion.fecha = nueva_fecha
+    sesion.motivo_reprogramacion = motivo.strip()
+
+    # Paso 7: REGLA TAREA 7:
+    # "Los participantes confirmados pasan a pendientes de reconfirmación y conservan temporalmente su cupo."
+    confirmados = db.scalars(
+        select(Inscripcion).where(
+            Inscripcion.sesion_id == sesion_id,
+            Inscripcion.estado == "aceptada"
+        )
+    ).all()
+
+    ahora_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    cantidad_afectados = len(confirmados)
+
+    # Cada alumno confirmado pasa a 'pendiente_reconfirmacion'
+    for participante in confirmados:
+        participante.estado = "pendiente_reconfirmacion"
+        participante.fecha_respuesta = ahora_utc
+
+    # Paso 8: Confirmar los cambios en la base de datos
+    db.commit()
+    db.refresh(sesion)
+
+    return {
+        "mensaje": f"Sesión reprogramada exitosamente para el {nueva_fecha}.",
+        "participantes_en_reconfirmacion": cantidad_afectados,
+        "nueva_fecha": sesion.fecha,
+        "motivo": sesion.motivo_reprogramacion,
+    }
+
+
+def reconfirmar_participacion(db, sesion_id, usuario_id):
+    """
+    TAREA 7: El participante acepta la nueva fecha reprogramada por el organizador.
+    Pasa de 'pendiente_reconfirmacion' de nuevo a 'aceptada' (confirmado en el cupo).
+    """
+    # Paso 1: Validar que la sesión exista
+    sesion = db.get(SesionEstudio, sesion_id)
+    if sesion is None:
+        raise ValueError("La sesión no existe.")
+
+    # Paso 2: Obtener la inscripción del estudiante
+    inscripcion = db.get(Inscripcion, (usuario_id, sesion_id))
+    if inscripcion is None:
+        raise ValueError("No estás registrado en esta sesión.")
+
+    # Paso 3: Validar que su estado requiera efectivamente reconfirmación
+    if inscripcion.estado != "pendiente_reconfirmacion":
+        raise ValueError("No tienes reconfirmaciones pendientes en esta sesión.")
+
+    # Paso 4: Cambiar de estado a 'aceptada' (confirmado)
+    ahora_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    inscripcion.estado = "aceptada"
+    inscripcion.fecha_respuesta = ahora_utc
+
+    # Paso 5: Confirmar en base de datos
+    db.commit()
+    db.refresh(inscripcion)
+
+    return {
+        "mensaje": "Has reconfirmado tu asistencia a la sesión exitosamente.",
+        "estado": inscripcion.estado,
+    }
+
+
 def unirse_a_sesion(db, sesion_id, usuario_id, hoy=None, estado="aceptada"):
     """
     Función de compatibilidad: Permite la inscripción directa para las pruebas automáticas heredadas.
@@ -246,11 +358,11 @@ def unirse_a_sesion(db, sesion_id, usuario_id, hoy=None, estado="aceptada"):
     if sesion is None:
         raise ValueError("no existe la sesion")
 
-    # Contar únicamente las solicitudes aceptadas
+    # Contar únicamente las solicitudes aceptadas o en reconfirmación (conservan cupo)
     inscritos = db.scalar(
         select(func.count()).select_from(Inscripcion).where(
             Inscripcion.sesion_id == sesion_id,
-            Inscripcion.estado == "aceptada"
+            Inscripcion.estado.in_(["aceptada", "pendiente_reconfirmacion"])
         )
     )
     ya_inscrito = db.get(Inscripcion, (usuario_id, sesion_id)) is not None
@@ -464,15 +576,20 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
 
     sesiones = db.scalars(consulta.order_by(SesionEstudio.fecha, SesionEstudio.id)).all()
 
-    # TAREA 5: Solo las solicitudes en estado 'aceptada' descuentan del cupo disponible
+    # TAREA 5 & 7: Solicitudes aceptadas y en reconfirmación ocupan cupo (conservan temporalmente su cupo)
     cantidades = dict(db.execute(select(
         Inscripcion.sesion_id, func.count()
-    ).where(Inscripcion.estado == "aceptada").group_by(Inscripcion.sesion_id)).all())
+    ).where(Inscripcion.estado.in_(["aceptada", "pendiente_reconfirmacion"])).group_by(Inscripcion.sesion_id)).all())
 
     # TAREA 6: Conteo de postulantes en lista de espera ('en_espera') por sesión
     en_espera_por_sesion = dict(db.execute(select(
         Inscripcion.sesion_id, func.count()
     ).where(Inscripcion.estado == "en_espera").group_by(Inscripcion.sesion_id)).all())
+
+    # TAREA 7: Conteo de participantes en reconfirmación pendiente por sesión
+    reconfirmaciones_por_sesion = dict(db.execute(select(
+        Inscripcion.sesion_id, func.count()
+    ).where(Inscripcion.estado == "pendiente_reconfirmacion").group_by(Inscripcion.sesion_id)).all())
 
     # Diccionario de estados de solicitud del usuario actual para cada sesión
     mis_inscripciones = {
@@ -494,12 +611,14 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
         if materia.strip() and materia.strip().casefold() != sesion.materia.casefold():
             continue
 
-        # --- TAREA 6: Variables de estado y lógica de lista de espera por cada sesión ---
-        inscritos = cantidades.get(sesion.id, 0)                  # Cantidad de solicitudes ya aceptadas
+        # --- TAREA 6 & 7: Variables de estado y lógica de negocio por cada sesión ---
+        inscritos = cantidades.get(sesion.id, 0)                  # Cantidad de solicitudes confirmadas o en reconfirmación
         estado_solicitud = mis_inscripciones.get(sesion.id, None) # Estado del usuario actual ('aceptada', 'en_espera', etc.)
         inscrito = (estado_solicitud == "aceptada")               # True si el usuario ya está confirmado
         es_organizador = (sesion.usuario_id == usuario_id)        # True si el usuario logueado es el creador
         en_espera_total = en_espera_por_sesion.get(sesion.id, 0)  # Total de alumnos actualmente en lista de espera
+        reconfirmaciones_count = reconfirmaciones_por_sesion.get(sesion.id, 0) # Alumnos pendientes de reconfirmar
+        es_pasada = (sesion.fecha <= hoy)                         # True si la fecha de la sesión ya ocurrió
 
         # TAREA 6: Cálculo de la posición exacta (1º, 2º, etc.) en la fila de espera si el usuario está en_espera
         posicion_espera = None
@@ -530,13 +649,15 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
             motivo = f"Estás en la lista de espera (Lugar #{posicion_espera})."
         elif estado_solicitud == "rechazada":
             motivo = "Tu solicitud fue rechazada por el organizador."
+        elif estado_solicitud == "pendiente_reconfirmacion":
+            motivo = f"La sesión fue reprogramada para el {sesion.fecha}. Motivo: '{getattr(sesion, 'motivo_reprogramacion', '') or 'Ajuste de horario'}'. Reconfirma tu asistencia para conservar tu lugar."
         else:
             motivo = motivo_para_unirse(sesion, usuario_id, inscritos, inscrito, hoy)
 
         if disponible and motivo:
             continue
 
-        # Cálculo de cupos disponibles reales (restando únicamente las solicitudes aceptadas)
+        # Cálculo de cupos disponibles reales (restando solicitudes aceptadas y en reconfirmación)
         cupos_libres = max(0, sesion.cupo - inscritos)
 
         # Determina si el estudiante puede enviar una solicitud normal (hay cupos libres disponibles)
@@ -557,11 +678,17 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
             and cupos_libres == 0
         )
 
-        # TAREA 6: Determina si el estudiante puede salir / abandonar (liberando cupo o saliendo de la fila)
+        # TAREA 6 & 7: Determina si el estudiante puede salir / abandonar (liberando cupo o saliendo de la fila)
         puede_abandonar = (
             not es_organizador
-            and estado_solicitud in ("aceptada", "en_espera", "pendiente")
+            and estado_solicitud in ("aceptada", "en_espera", "pendiente", "pendiente_reconfirmacion")
         )
+
+        # TAREA 7: Determina si el usuario puede reconfirmar su participación
+        puede_reconfirmar = (estado_solicitud == "pendiente_reconfirmacion")
+
+        # TAREA 7: REGLA 'Mientras haya reconfirmaciones pendientes, no se admite otra reprogramación'
+        puede_reprogramar = es_organizador and (reconfirmaciones_count == 0) and (not es_pasada)
 
         # Construcción del diccionario con todas las propiedades que consume el frontend React
         resultado.append({
@@ -571,10 +698,10 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
             "modalidad": sesion.modalidad.lower(),
             "fecha": sesion.fecha,
             "cupo": sesion.cupo,
-            "cupos_disponibles": cupos_libres,  # Descuenta únicamente aceptadas
+            "cupos_disponibles": cupos_libres,  # Descuenta únicamente aceptadas y en reconfirmación
             "inscripciones_abiertas": sesion.inscripciones_abiertas,
             "inscrito": inscrito,
-            "estado_solicitud": estado_solicitud,  # 'pendiente', 'aceptada', 'en_espera', 'rechazada' o None
+            "estado_solicitud": estado_solicitud,  # 'pendiente', 'aceptada', 'en_espera', 'pendiente_reconfirmacion', 'rechazada' o None
             "es_organizador": es_organizador,      # True si el usuario creó esta sesión
             "solicitudes_pendientes_count": pendientes_por_sesion.get(sesion.id, 0) if es_organizador else 0,
             "en_espera_count": en_espera_total,    # Total de personas en lista de espera
@@ -583,6 +710,11 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
             "puede_solicitar": puede_solicitar,
             "puede_solicitar_espera": puede_solicitar_espera,  # True si puede entrar a la lista de espera
             "puede_abandonar": puede_abandonar,                # True si puede salir / liberar cupo
+            "puede_reconfirmar": puede_reconfirmar,            # True si tiene reconfirmación pendiente
+            "puede_reprogramar": puede_reprogramar,            # True si el organizador puede reprogramar
+            "reconfirmaciones_pendientes_count": reconfirmaciones_count, # Total en reconfirmación
+            "motivo_reprogramacion": getattr(sesion, "motivo_reprogramacion", None),
+            "es_pasada": es_pasada,                            # True si la fecha ya pasó (Feedback Clase 19)
             "motivo": motivo,
         })
     return resultado

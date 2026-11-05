@@ -337,7 +337,9 @@ export default function Dashboard({ user }) {
                           <div className="d-flex justify-content-between align-items-start mb-1">
                             <h4 className="h6 fw-bold mb-0">{sol.sesion_nombre}</h4>
                             {/* Insignia del estado de la solicitud según la respuesta del organizador y lista de espera */}
-                            {sol.estado === "pendiente" ? (
+                            {sol.estado === "pendiente_reconfirmacion" ? (
+                              <span className="badge bg-warning text-dark">⚠️ Requiere reconfirmación</span>
+                            ) : sol.estado === "pendiente" ? (
                               <span className="badge bg-warning text-dark">⏳ Pendiente</span>
                             ) : sol.estado === "en_espera" ? (
                               <span className="badge bg-info text-dark">⏳ En espera (#{sol.posicion || 1})</span>
@@ -359,9 +361,14 @@ export default function Dashboard({ user }) {
                             </div>
                           )}
 
-                          {/* TAREA 6: Botón de acción para que el estudiante pueda salir, cancelar o ceder su lugar */}
-                          {["aceptada", "en_espera", "pendiente"].includes(sol.estado) && (
-                            <div className="mt-2 pt-2 border-top text-end">
+                          {/* TAREA 6 & 7: Botón de acción para que el estudiante pueda salir, cancelar o retirarse */}
+                          {["aceptada", "en_espera", "pendiente", "pendiente_reconfirmacion"].includes(sol.estado) && (
+                            <div className="mt-2 pt-2 border-top d-flex justify-content-end gap-2">
+                              {sol.estado === "pendiente_reconfirmacion" && (
+                                <Link to="/sesions" className="btn btn-sm btn-success">
+                                  Ver nueva fecha y responder
+                                </Link>
+                              )}
                               <button
                                 type="button"
                                 className="btn btn-sm btn-outline-danger"
@@ -372,6 +379,8 @@ export default function Dashboard({ user }) {
                                   ? "Salir de lista de espera"
                                   : sol.estado === "aceptada"
                                   ? "Abandonar sesión"
+                                  : sol.estado === "pendiente_reconfirmacion"
+                                  ? "Retirarme de la sesión"
                                   : "Cancelar solicitud"}
                               </button>
                             </div>

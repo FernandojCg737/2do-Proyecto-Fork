@@ -55,3 +55,10 @@ class ResponderSolicitud(BaseModel):
         if valor not in ("aceptar", "rechazar"):
             raise ValueError("La decisión debe ser 'aceptar' o 'rechazar'.")
         return valor
+
+
+# --- TAREA 7: Esquema de validación para reprogramar sesión de estudio ---
+# Valida la nueva fecha y el motivo obligatorio ingresados por el organizador.
+class ReprogramarSesion(BaseModel):
+    fecha: date
+    motivo: str = Field(min_length=3)

@@ -84,6 +84,13 @@ def inicializar_db():
                 f"ALTER TABLE sesiones ADD COLUMN materia {tipo_materia} NOT NULL DEFAULT 'General'"
             ))
 
+        # TAREA 7: Migración automática de columna 'motivo_reprogramacion' en sesiones
+        if "motivo_reprogramacion" not in columnas:
+            tipo_str = "VARCHAR(500)" if engine.dialect.name == "postgresql" else "TEXT"
+            conexion.execute(text(
+                f"ALTER TABLE sesiones ADD COLUMN motivo_reprogramacion {tipo_str}"
+            ))
+
         columnas_inscripciones = [
             columna["name"]
             for columna in inspect(conexion).get_columns("inscriprciones")

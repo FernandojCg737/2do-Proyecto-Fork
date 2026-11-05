@@ -14,6 +14,7 @@ from app.models import (
     Login,
     RecuperarPassword,
     Registro,
+    ReprogramarSesion,
     ResponderSolicitud,
     SesionDeEstudio,
 )
@@ -28,6 +29,8 @@ from app.repositorio import (
     listar_sesiones,
     listar_solicitudes_organizador,
     obtener_historial,
+    reconfirmar_participacion,
+    reprogramar_sesion,
     responder_solicitud,
     salir_de_sesion,
     solicitar_unirse,
@@ -226,6 +229,61 @@ def endpoint_salir_de_sesion(
         raise HTTPException(status_code=400, detail=str(error))
 
 
+# ==============================================================================
+# --- TAREA 7: Endpoints para Reprogramar Sesión y Reconfirmar Asistencia ---
+# ==============================================================================
+
+# Endpoint HTTP POST: Permite que el organizador cambie la fecha u horario de la sesión
+@router.post("/sesiones/{sesion_id}/reprogramar")
+def endpoint_reprogramar_sesion(
+    sesion_id: int,                          # ID numérico de la sesión en la URL
+    datos: ReprogramarSesion,                # Payload validado: nueva fecha y motivo
+    db: Session = Depends(get_db),           # Inyección de dependencia: sesión de base de datos
+    usuario=Depends(obtener_usuario_actual),  # Inyección de dependencia: organizador autenticado
+):
+    """
+    TAREA 7 (Defensa):
+    1. Valida que el usuario sea el organizador de la sesión.
+    2. REGLA: Mientras haya reconfirmaciones pendientes, no se admite otra reprogramación.
+    3. Cambia la fecha de la sesión y persiste el motivo explicativo.
+    4. REGLA: Pasa a todos los confirmados ('aceptada') a 'pendiente_reconfirmacion'.
+    """
+    try:
+        resultado = reprogramar_sesion(
+            db=db,
+            sesion_id=sesion_id,
+            nueva_fecha=datos.fecha,
+            motivo=datos.motivo,
+            organizador_id=usuario.id,
+        )
+        return resultado
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+
+
+# Endpoint HTTP POST: Permite que un participante acepte la nueva fecha reprogramada
+@router.post("/sesiones/{sesion_id}/reconfirmar")
+def endpoint_reconfirmar_participacion(
+    sesion_id: int,                          # ID numérico de la sesión que fue reprogramada
+    db: Session = Depends(get_db),           # Inyección de dependencia: conexión a BD
+    usuario=Depends(obtener_usuario_actual),  # Inyección de dependencia: estudiante autenticado
+):
+    """
+    TAREA 7 (Defensa):
+    1. Valida que el estudiante tenga una vacante en estado 'pendiente_reconfirmacion'.
+    2. Transiciona su estado de vuelta a 'aceptada' (confirmado en el cupo).
+    """
+    try:
+        resultado = reconfirmar_participacion(
+            db=db,
+            sesion_id=sesion_id,
+            usuario_id=usuario.id,
+        )
+        return resultado
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+
+
 # Endpoint de compatibilidad para inscripciones directas en pruebas heredadas
 @router.post("/sesiones/{sesion_id}/inscribirse")
 def inscribirse(
@@ -259,6 +317,7 @@ def get_solicitudes_organizador(
 
 # Endpoint para que el organizador acepte o rechace una solicitud específica
 @router.post("/solicitudes/{sesion_id}/usuarios/{solicitante_id}/responder")
+@router.post("/solicitudes/{sesion_id}/{solicitante_id}/responder")
 def endpoint_responder_solicitud(
     sesion_id: int,
     solicitante_id: int,
