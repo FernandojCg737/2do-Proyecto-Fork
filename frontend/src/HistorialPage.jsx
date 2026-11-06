@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Alert, Loading } from "./Components";
 import { apiRequest } from "./api";
+import NavPills from "./NavPills";
 
 // Formatea fecha YYYY-MM-DD a DD/MM/YYYY
 function formatearFecha(fecha) {
@@ -60,6 +61,9 @@ export default function HistorialPage() {
 
   return (
     <div>
+      {/* CLASE 20: Navegación de secciones */}
+      <NavPills activeTab="historial" />
+
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
           <h1 className="h2 mb-1">Mi historial de sesiones</h1>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Alert, Loading } from "./Components";
 import { apiRequest } from "./api";
+import NavPills from "./NavPills";
 
 // Formatea fecha a formato legible local DD/MM/YYYY
 function formatearFecha(fecha) {
@@ -32,29 +33,30 @@ function formatearHora(fechaIso) {
 }
 
 export default function Dashboard({ user }) {
+  const [searchParams] = useSearchParams();
+  // CLASE 20: Arquitectura de información - Pestaña activa según navegación
+  const tabParam = searchParams.get("tab");
+  const tabActiva = tabParam === "mis-sesiones" ? "mis-sesiones" : "solicitudes";
+
   // --- TAREA 5: Estados para Solicitudes del Organizador y del Estudiante ---
-  // Guarda las solicitudes entrantes dirigidas a las sesiones creadas por el usuario
   const [solicitudesOrganizador, setSolicitudesOrganizador] = useState([]);
-  // Guarda las solicitudes enviadas por el usuario a sesiones de otros organizadores
   const [misSolicitudes, setMisSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
-  // Guarda el id de la solicitud en proceso de respuesta para evitar clics dobles
   const [procesando, setProcesando] = useState(null);
   const [actualizacion, setActualizacion] = useState(0);
 
   useEffect(() => {
     let activo = true;
 
-    // Carga paralela de solicitudes recibidas (organizador) y solicitudes enviadas (estudiante)
     async function cargarDatos() {
       setLoading(true);
       setError("");
       try {
         const [solOrg, solEstudiante] = await Promise.all([
-          apiRequest("/organizador/solicitudes"), // Endpoint Tarea 5 para organizador
-          apiRequest("/mis-solicitudes"),         // Endpoint Tarea 5 para estudiante
+          apiRequest("/organizador/solicitudes"),
+          apiRequest("/mis-solicitudes"),
         ]);
         if (activo) {
           setSolicitudesOrganizador(solOrg);
@@ -73,20 +75,18 @@ export default function Dashboard({ user }) {
     };
   }, [actualizacion]);
 
-  // --- TAREA 5: Responder solicitud (Aceptar o Rechazar) directamente desde el Dashboard ---
+  // --- TAREA 5: Responder solicitud (Aceptar o Rechazar) ---
   async function responder(sesionId, solicitanteId, decision) {
     const clave = `${sesionId}-${solicitanteId}`;
     setProcesando(clave);
     setError("");
     setMensaje("");
     try {
-      // Envía la decisión al endpoint de resolución del backend
       const res = await apiRequest(`/solicitudes/${sesionId}/usuarios/${solicitanteId}/responder`, {
         method: "POST",
         body: JSON.stringify({ decision }),
       });
       setMensaje(res.mensaje);
-      // Dispara la recarga inmediata para actualizar la lista de solicitudes
       setActualizacion((v) => v + 1);
     } catch (err) {
       setError(err.message);
@@ -95,37 +95,22 @@ export default function Dashboard({ user }) {
     }
   }
 
-  // ==============================================================================
-  // --- TAREA 6: Estudiante abandona sesión o sale de lista de espera desde el Dashboard ---
-  // ==============================================================================
+  // --- TAREA 6 & 7: Salir de sesión o abandonar lista de espera ---
   async function salirDeSesion(sesionId) {
-    // 1. Bloquea el botón específico de esta tarjeta para evitar dobles envíos
     setProcesando(`salir-${sesionId}`);
     setError("");
     setMensaje("");
     try {
-      // 2. Llama al endpoint POST /sesiones/{id}/salir
-      // REGLA CLAVE TAREA 6: Si el alumno estaba confirmado ('aceptada'), el backend
-      // ejecuta la promoción atómica del primer estudiante en lista de espera ('en_espera').
       const res = await apiRequest(`/sesiones/${sesionId}/salir`, { method: "POST" });
       setMensaje(res.mensaje || "Has salido de la sesión correctamente.");
-
-      // 3. Incrementa el contador 'actualizacion' para forzar a useEffect a recargar
-      // tanto 'misSolicitudes' como 'solicitudesOrganizador' desde el servidor
       setActualizacion((v) => v + 1);
     } catch (err) {
-      // 4. Muestra alerta de error en caso de fallo
       setError(err.message);
     } finally {
-      // 5. Libera el estado de bloqueo del botón
       setProcesando(null);
     }
   }
 
-  // Filtrado de solicitudes recibidas por el organizador clasificadas por su estado:
-  // - pendientes: Alumnos que esperan respuesta del organizador
-  // - enEspera: Alumnos en lista de espera (sesión llena) que ascenderán automáticamente
-  // - respondidas: Historial de aceptadas o rechazadas previamente
   const pendientesOrganizador = solicitudesOrganizador.filter((s) => s.estado === "pendiente");
   const enEsperaOrganizador = solicitudesOrganizador.filter((s) => s.estado === "en_espera");
   const respondidasOrganizador = solicitudesOrganizador.filter((s) => !["pendiente", "en_espera"].includes(s.estado));
@@ -134,30 +119,30 @@ export default function Dashboard({ user }) {
     <div className="row justify-content-center">
       <div className="col-12 col-xl-10">
         {/* ENCABEZADO DE BIENVENIDA */}
-        <div className="card border-0 shadow-sm mb-4">
-          <div className="card-body p-4">
+        <div className="card border-0 shadow-sm mb-3">
+          <div className="card-body p-3 p-md-4">
             <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
               <div>
-                <span className="badge text-bg-success mb-2">Sesión activa</span>
-                <h1 className="h3 fw-bold mb-1">Bienvenido, {user.nombre}</h1>
-                <p className="text-secondary mb-0">
-                  Panel de control de <strong>StudyMatch</strong> &bull; {user.email}
+                <span className="badge text-bg-success mb-1">Sesión activa</span>
+                <h1 className="h4 fw-bold mb-0">Bienvenido, {user.nombre}</h1>
+                <p className="text-secondary small mb-0">
+                  Panel de control &bull; {user.email}
                 </p>
               </div>
               <div className="d-flex gap-2 flex-wrap">
-                <Link to="/sesions" className="btn btn-primary">
+                <Link to="/sesions" className="btn btn-outline-primary btn-sm rounded-pill">
                   🔍 Explorar sesiones
                 </Link>
-                <Link to="/new-study" className="btn btn-outline-primary">
+                <Link to="/new-study" className="btn btn-primary btn-sm rounded-pill">
                   + Crear sesión
-                </Link>
-                <Link to="/historial" className="btn btn-outline-secondary">
-                  📋 Mi historial
                 </Link>
               </div>
             </div>
           </div>
         </div>
+
+        {/* CLASE 20: Arquitectura de información - Pestañas de navegación organizadas */}
+        <NavPills activeTab={tabActiva} />
 
         {/* Notificaciones */}
         {error && <Alert type="danger" text={error} />}
@@ -166,30 +151,149 @@ export default function Dashboard({ user }) {
         {loading ? (
           <Loading />
         ) : (
-          <div className="row g-4">
-            {/* --- SECCIÓN 1: PANEL ORGANIZADOR (Solicitudes a mis sesiones) --- */}
-            <div className="col-12 col-lg-6">
-              <div className="card border-0 shadow-sm h-100">
-                <div className="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                  <h2 className="h5 fw-bold mb-0">
-                    👑 Solicitudes a mis sesiones
-                  </h2>
-                  {pendientesOrganizador.length > 0 ? (
-                    <span className="badge bg-danger rounded-pill">
-                      {pendientesOrganizador.length} pendiente{pendientesOrganizador.length > 1 ? "s" : ""}
-                    </span>
+          <div>
+            {/* ================================================================= */}
+            {/* VISTA 1: MIS SOLICITUDES (Pestaña Estudiante - Clase 20) */}
+            {/* ================================================================= */}
+            {tabActiva === "solicitudes" && (
+              <div className="card border-0 shadow-sm">
+                <div className="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <h2 className="h5 fw-bold mb-0 text-dark">
+                      📨 Mis solicitudes
+                    </h2>
+                    <p className="text-muted small mb-0">
+                      Consulta si ya aceptaron tu solicitud, si requieres reconfirmar o tu lugar en lista de espera.
+                    </p>
+                  </div>
+                  <span className="badge bg-primary rounded-pill px-3 py-2">
+                    {misSolicitudes.length} solicitud{misSolicitudes.length !== 1 ? "es" : ""}
+                  </span>
+                </div>
+                <div className="card-body p-3 p-md-4">
+                  {misSolicitudes.length === 0 ? (
+                    <div className="text-center py-5 text-muted bg-light rounded-4">
+                      <p className="fs-5 mb-2">Aún no has enviado solicitudes para unirte a sesiones.</p>
+                      <p className="small mb-3">Encuentra una materia que te interese y postula a un grupo.</p>
+                      <Link to="/sesions" className="btn btn-primary rounded-pill px-4">
+                        🔍 Buscar sesiones disponibles
+                      </Link>
+                    </div>
                   ) : (
-                    <span className="badge bg-secondary rounded-pill">Al día</span>
+                    <div className="d-flex flex-column gap-3">
+                      {misSolicitudes.map((sol) => (
+                        <div
+                          key={sol.sesion_id}
+                          className="card border border-light-subtle shadow-sm rounded-3 overflow-hidden"
+                        >
+                          <div className="card-body p-3 p-md-4">
+                            <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                              <div>
+                                <span className="badge bg-secondary-subtle text-secondary small mb-1">
+                                  {sol.materia}
+                                </span>
+                                <h3 className="h5 fw-bold mb-1 text-dark">
+                                  {sol.sesion_nombre}
+                                </h3>
+                                <p className="text-muted small mb-0">
+                                  Organizador: <strong>{sol.organizador_nombre}</strong> ({sol.organizador_email}) &bull; Fecha: {formatearFecha(sol.fecha_sesion)}
+                                </p>
+                              </div>
+
+                              {/* CLASE 20: Insignia de estado limpia según el diseño de Arquitectura */}
+                              <div className="text-end">
+                                {sol.estado === "aceptada" && (
+                                  <span className="badge bg-success text-white px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                    ✓ Aceptada
+                                  </span>
+                                )}
+                                {sol.estado === "pendiente" && (
+                                  <span className="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                    🕒 Pendiente de respuesta
+                                  </span>
+                                )}
+                                {sol.estado === "en_espera" && (
+                                  <span className="badge bg-info text-dark px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                    ⏳ En lista de espera (Lugar #{sol.posicion || 1})
+                                  </span>
+                                )}
+                                {sol.estado === "pendiente_reconfirmacion" && (
+                                  <span className="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                    ⚠️ Requiere reconfirmación
+                                  </span>
+                                )}
+                                {sol.estado === "rechazada" && (
+                                  <span className="badge bg-danger text-white px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                    ❌ Rechazada
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {sol.fecha_respuesta && (
+                              <p className="small text-muted mb-2 fst-italic">
+                                Respondida: {formatearHora(sol.fecha_respuesta)}
+                              </p>
+                            )}
+
+                            {/* Acciones de la solicitud */}
+                            <div className="pt-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                              <Link to="/sesions" className="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                Ver sesión
+                              </Link>
+
+                              {["aceptada", "en_espera", "pendiente", "pendiente_reconfirmacion"].includes(sol.estado) && (
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-danger btn-sm rounded-pill px-3"
+                                  disabled={procesando === `salir-${sol.sesion_id}`}
+                                  onClick={() => salirDeSesion(sol.sesion_id)}
+                                >
+                                  {sol.estado === "en_espera"
+                                    ? "Salir de lista de espera"
+                                    : sol.estado === "aceptada"
+                                    ? "Abandonar sesión"
+                                    : sol.estado === "pendiente_reconfirmacion"
+                                    ? "Retirarme de la sesión"
+                                    : "Cancelar solicitud"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-                <div className="card-body p-3">
-                  <p className="small text-muted mb-3">
-                    Como organizador, tú decides quién se une a tus sesiones. Al aceptar, se descuenta un cupo disponible.
-                  </p>
+              </div>
+            )}
 
+            {/* ================================================================= */}
+            {/* VISTA 2: MIS SESIONES (Pestaña Organizador - Clase 20) */}
+            {/* ================================================================= */}
+            {tabActiva === "mis-sesiones" && (
+              <div className="card border-0 shadow-sm">
+                <div className="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <h2 className="h5 fw-bold mb-0 text-dark">
+                      👑 Mis sesiones (Organizador)
+                    </h2>
+                    <p className="text-muted small mb-0">
+                      Gestiona las solicitudes de tus compañeros y la lista de espera de tus sesiones.
+                    </p>
+                  </div>
+                  <Link to="/new-study" className="btn btn-primary btn-sm rounded-pill px-3">
+                    + Crear nueva sesión
+                  </Link>
+                </div>
+                <div className="card-body p-3 p-md-4">
                   {solicitudesOrganizador.length === 0 ? (
-                    <div className="text-center py-4 text-muted bg-light rounded">
-                      <p className="mb-0">Aún no has recibido solicitudes para tus sesiones de estudio.</p>
+                    <div className="text-center py-5 text-muted bg-light rounded-4">
+                      <p className="fs-5 mb-2">Aún no has recibido solicitudes en tus sesiones.</p>
+                      <p className="small mb-3">Crea una sesión para convocar estudiantes de tu carrera.</p>
+                      <Link to="/new-study" className="btn btn-primary rounded-pill px-4">
+                        + Crear sesión de estudio
+                      </Link>
                     </div>
                   ) : (
                     <div className="d-flex flex-column gap-3">
@@ -197,13 +301,13 @@ export default function Dashboard({ user }) {
                       {pendientesOrganizador.length > 0 && (
                         <div>
                           <h3 className="h6 text-danger fw-bold mb-2">
-                            Pendientes de responder ({pendientesOrganizador.length})
+                            ⚠️ Pendientes de responder ({pendientesOrganizador.length})
                           </h3>
                           <div className="d-flex flex-column gap-2">
                             {pendientesOrganizador.map((sol) => (
                               <div
                                 key={`${sol.sesion_id}-${sol.solicitante_id}`}
-                                className="border rounded p-3 bg-light shadow-sm"
+                                className="border rounded-3 p-3 bg-light shadow-sm"
                               >
                                 <div className="d-flex justify-content-between align-items-start mb-1">
                                   <div>
@@ -215,23 +319,22 @@ export default function Dashboard({ user }) {
                                 <div className="small text-secondary mb-2">
                                   <strong>Sesión:</strong> {sol.sesion_nombre} ({sol.materia})
                                 </div>
-                                {/* Botones para que el organizador acepte o rechace la solicitud */}
                                 <div className="d-flex gap-2">
                                   <button
                                     type="button"
-                                    className="btn btn-sm btn-success flex-fill"
+                                    className="btn btn-success btn-sm rounded-pill px-3"
                                     disabled={procesando === `${sol.sesion_id}-${sol.solicitante_id}`}
                                     onClick={() => responder(sol.sesion_id, sol.solicitante_id, "aceptar")}
                                   >
-                                    ✓ Aceptar
+                                    Aceptar
                                   </button>
                                   <button
                                     type="button"
-                                    className="btn btn-sm btn-outline-danger flex-fill"
+                                    className="btn btn-outline-danger btn-sm rounded-pill px-3"
                                     disabled={procesando === `${sol.sesion_id}-${sol.solicitante_id}`}
                                     onClick={() => responder(sol.sesion_id, sol.solicitante_id, "rechazar")}
                                   >
-                                    ✕ Rechazar
+                                    Rechazar
                                   </button>
                                 </div>
                               </div>
@@ -240,17 +343,17 @@ export default function Dashboard({ user }) {
                         </div>
                       )}
 
-                      {/* TAREA 6: Subsección de estudiantes en Lista de Espera */}
+                      {/* Subsección: En lista de espera */}
                       {enEsperaOrganizador.length > 0 && (
                         <div>
                           <h3 className="h6 text-primary fw-bold mb-2">
-                            En lista de espera ({enEsperaOrganizador.length})
+                            ⏳ En lista de espera ({enEsperaOrganizador.length})
                           </h3>
                           <div className="d-flex flex-column gap-2">
                             {enEsperaOrganizador.map((sol) => (
                               <div
                                 key={`${sol.sesion_id}-${sol.solicitante_id}`}
-                                className="border rounded p-3 bg-light shadow-sm"
+                                className="border rounded-3 p-3 bg-light shadow-sm"
                               >
                                 <div className="d-flex justify-content-between align-items-start mb-1">
                                   <div>
@@ -263,7 +366,7 @@ export default function Dashboard({ user }) {
                                   <strong>Sesión:</strong> {sol.sesion_nombre} ({sol.materia})
                                 </div>
                                 <div className="small text-muted mt-1 fst-italic">
-                                  ℹ️ Ingresará automáticamente a confirmado si un estudiante confirmado sale.
+                                  ℹ️ Ingresará automáticamente a confirmado si un participante sale.
                                 </div>
                               </div>
                             ))}
@@ -271,7 +374,7 @@ export default function Dashboard({ user }) {
                         </div>
                       )}
 
-                      {/* Subsección: Historial de solicitudes ya resueltas */}
+                      {/* Subsección: Historial respondidas */}
                       {respondidasOrganizador.length > 0 && (
                         <div className="mt-2">
                           <h3 className="h6 text-muted fw-bold mb-2">
@@ -302,96 +405,7 @@ export default function Dashboard({ user }) {
                   )}
                 </div>
               </div>
-            </div>
-
-            {/* --- SECCIÓN 2: PANEL ESTUDIANTE (Mis solicitudes enviadas) --- */}
-            <div className="col-12 col-lg-6">
-              <div className="card border-0 shadow-sm h-100">
-                <div className="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                  <h2 className="h5 fw-bold mb-0">
-                    📨 Mis solicitudes enviadas
-                  </h2>
-                  <span className="badge bg-primary rounded-pill">
-                    {misSolicitudes.length} total
-                  </span>
-                </div>
-                <div className="card-body p-3">
-                  <p className="small text-muted mb-3">
-                    Sesiones a las que has solicitado unirte. Tu estado persiste incluso al recargar o volver a entrar.
-                  </p>
-
-                  {misSolicitudes.length === 0 ? (
-                    <div className="text-center py-4 text-muted bg-light rounded">
-                      <p className="mb-2">Aún no has enviado solicitudes para unirte a sesiones.</p>
-                      <Link to="/sesions" className="btn btn-sm btn-outline-primary">
-                        Buscar sesiones disponibles
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="d-flex flex-column gap-2">
-                      {misSolicitudes.map((sol) => (
-                        <div
-                          key={sol.sesion_id}
-                          className="border rounded p-3 bg-white shadow-sm"
-                        >
-                          <div className="d-flex justify-content-between align-items-start mb-1">
-                            <h4 className="h6 fw-bold mb-0">{sol.sesion_nombre}</h4>
-                            {/* Insignia del estado de la solicitud según la respuesta del organizador y lista de espera */}
-                            {sol.estado === "pendiente_reconfirmacion" ? (
-                              <span className="badge bg-warning text-dark">⚠️ Requiere reconfirmación</span>
-                            ) : sol.estado === "pendiente" ? (
-                              <span className="badge bg-warning text-dark">⏳ Pendiente</span>
-                            ) : sol.estado === "en_espera" ? (
-                              <span className="badge bg-info text-dark">⏳ En espera (#{sol.posicion || 1})</span>
-                            ) : sol.estado === "aceptada" ? (
-                              <span className="badge bg-success">✅ Confirmada</span>
-                            ) : (
-                              <span className="badge bg-danger">❌ Rechazada</span>
-                            )}
-                          </div>
-                          <div className="small text-muted mb-1">
-                            <strong>Materia:</strong> {sol.materia} &bull; <strong>Modalidad:</strong> {sol.modalidad}
-                          </div>
-                          <div className="small text-secondary">
-                            <strong>Organizador:</strong> {sol.organizador_nombre} ({sol.organizador_email})
-                          </div>
-                          {sol.fecha_respuesta && (
-                            <div className="small text-muted mt-1 fst-italic">
-                              Respondida: {formatearHora(sol.fecha_respuesta)}
-                            </div>
-                          )}
-
-                          {/* TAREA 6 & 7: Botón de acción para que el estudiante pueda salir, cancelar o retirarse */}
-                          {["aceptada", "en_espera", "pendiente", "pendiente_reconfirmacion"].includes(sol.estado) && (
-                            <div className="mt-2 pt-2 border-top d-flex justify-content-end gap-2">
-                              {sol.estado === "pendiente_reconfirmacion" && (
-                                <Link to="/sesions" className="btn btn-sm btn-success">
-                                  Ver nueva fecha y responder
-                                </Link>
-                              )}
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-danger"
-                                disabled={procesando === `salir-${sol.sesion_id}`}
-                                onClick={() => salirDeSesion(sol.sesion_id)}
-                              >
-                                {sol.estado === "en_espera"
-                                  ? "Salir de lista de espera"
-                                  : sol.estado === "aceptada"
-                                  ? "Abandonar sesión"
-                                  : sol.estado === "pendiente_reconfirmacion"
-                                  ? "Retirarme de la sesión"
-                                  : "Cancelar solicitud"}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         )}
       </div>

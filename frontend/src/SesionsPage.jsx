@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Alert, Input, Loading } from "./Components";
 import { apiRequest } from "./api";
+import NavPills from "./NavPills";
 
 // Diccionario de nombres legibles para los chips de filtros activos
 const nombresFiltros = {
@@ -283,6 +284,9 @@ export default function SesionsPage() {
 
   return (
     <div>
+      {/* CLASE 20: Navegación de secciones */}
+      <NavPills activeTab="buscar" />
+
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
           <h1 className="h2 mb-1">Sesiones de estudio</h1>

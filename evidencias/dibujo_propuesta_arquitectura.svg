@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 560" width="1020" height="560" style="background:#0b1120; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <!-- Gradientes -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="pillActive" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="badgeGreen" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+
+  <!-- FONDO -->
+  <rect width="1020" height="560" fill="url(#bgGrad)"/>
+
+  <!-- ENCABEZADO SUPERIOR -->
+  <text x="510" y="38" text-anchor="middle" fill="#ffffff" font-size="20" font-weight="800" letter-spacing="-0.5">
+    ARQUITECTURA DE INFORMACIÓN — STUDYMATCH (CLASE 20)
+  </text>
+  <text x="510" y="60" text-anchor="middle" fill="#94a3b8" font-size="13">
+    Tarea evaluada: «Consulta si ya aceptaron tu solicitud para estudiar Física»
+  </text>
+
+  <!-- ========================================================== -->
+  <!-- COLUMNA 1: ANTES -->
+  <!-- ========================================================== -->
+  <g transform="translate(30, 80)">
+    <!-- Marco panel Antes -->
+    <rect width="445" height="450" rx="14" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    
+    <!-- Header panel -->
+    <rect x="0" y="0" width="445" height="46" rx="14" fill="#0f172a"/>
+    <rect x="0" y="26" width="445" height="20" fill="#0f172a"/>
+    <rect x="14" y="10" width="70" height="24" rx="12" fill="#ef4444" fill-opacity="0.2" stroke="#ef4444" stroke-width="1"/>
+    <text x="49" y="26" text-anchor="middle" fill="#f87171" font-size="11" font-weight="700">ANTES</text>
+    <text x="96" y="27" fill="#e2e8f0" font-size="14" font-weight="700">Estructura Plana / Lista Mezclada</text>
+
+    <text x="16" y="66" fill="#94a3b8" font-size="11">Todas las materias revueltas en una sola columna:</text>
+
+    <!-- Tarjeta: Cálculo I -->
+    <rect x="16" y="78" width="413" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="28" y="101" fill="#f1f5f9" font-size="13" font-weight="700">Cálculo I</text>
+    <text x="28" y="117" fill="#64748b" font-size="11">Disponible · Martes 16:00</text>
+    <rect x="330" y="91" width="86" height="22" rx="11" fill="#334155"/>
+    <text x="373" y="106" text-anchor="middle" fill="#cbd5e1" font-size="10">Disponible</text>
+
+    <!-- Tarjeta: Programación -->
+    <rect x="16" y="136" width="413" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="28" y="159" fill="#f1f5f9" font-size="13" font-weight="700">Programación</text>
+    <text x="28" y="175" fill="#64748b" font-size="11">Terminada · participaste</text>
+    <rect x="330" y="149" width="86" height="22" rx="11" fill="#334155"/>
+    <text x="373" y="164" text-anchor="middle" fill="#94a3b8" font-size="10">Terminada</text>
+
+    <!-- Tarjeta: Física (OBJETIVO PERDIDO) -->
+    <rect x="16" y="194" width="413" height="56" rx="8" fill="#2d2012" stroke="#f59e0b" stroke-width="1.5"/>
+    <text x="28" y="217" fill="#fbbf24" font-size="13" font-weight="800">Física (Objetivo de la tarea)</text>
+    <text x="28" y="235" fill="#d97706" font-size="11">Solicitud aceptada (oculta entre materias abiertas)</text>
+    <rect x="318" y="209" width="98" height="24" rx="12" fill="#f59e0b" fill-opacity="0.25" stroke="#f59e0b" stroke-width="1"/>
+    <text x="367" y="225" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="700">✓ Aceptada</text>
+
+    <!-- Tarjeta: Álgebra -->
+    <rect x="16" y="258" width="413" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="28" y="281" fill="#f1f5f9" font-size="13" font-weight="700">Álgebra</text>
+    <text x="28" y="297" fill="#64748b" font-size="11">Disponible · Jueves 17:00</text>
+    <rect x="330" y="271" width="86" height="22" rx="11" fill="#334155"/>
+    <text x="373" y="286" text-anchor="middle" fill="#cbd5e1" font-size="10">Disponible</text>
+
+    <!-- Tarjeta: Química -->
+    <rect x="16" y="316" width="413" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="28" y="339" fill="#f1f5f9" font-size="13" font-weight="700">Química</text>
+    <text x="28" y="355" fill="#64748b" font-size="11">Solicitud pendiente</text>
+    <rect x="318" y="329" width="98" height="22" rx="11" fill="#d97706" fill-opacity="0.2"/>
+    <text x="367" y="344" text-anchor="middle" fill="#fbbf24" font-size="10">⏳ Pendiente</text>
+
+    <!-- Caja de advertencia -->
+    <rect x="16" y="376" width="413" height="58" rx="8" fill="#450a0a" stroke="#991b1b" stroke-width="1"/>
+    <text x="28" y="398" fill="#fca5a5" font-size="11" font-weight="700">❌ Problema de Usabilidad:</text>
+    <text x="28" y="416" fill="#f87171" font-size="11">Todo está mezclado. Hay que leer cada elemento para reconocer</text>
+    <text x="28" y="428" fill="#f87171" font-size="11">qué relación tiene con nosotros.</text>
+  </g>
+
+  <!-- FLECHA CENTRAL -->
+  <g transform="translate(485, 280)">
+    <circle cx="25" cy="25" r="22" fill="#4f46e5"/>
+    <path d="M 17 25 L 31 25 M 26 19 L 32 25 L 26 31" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <text x="25" y="62" text-anchor="middle" fill="#818cf8" font-size="10" font-weight="700">IHC 20</text>
+  </g>
+
+  <!-- ========================================================== -->
+  <!-- COLUMNA 2: DESPUÉS -->
+  <!-- ========================================================== -->
+  <g transform="translate(545, 80)">
+    <!-- Marco panel Después -->
+    <rect width="445" height="450" rx="14" fill="#1e293b" stroke="#6366f1" stroke-width="1.8"/>
+    
+    <!-- Header panel -->
+    <rect x="0" y="0" width="445" height="46" rx="14" fill="#0f172a"/>
+    <rect x="0" y="26" width="445" height="20" fill="#0f172a"/>
+    <rect x="14" y="10" width="80" height="24" rx="12" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="1"/>
+    <text x="54" y="26" text-anchor="middle" fill="#34d399" font-size="11" font-weight="700">DESPUÉS</text>
+    <text x="106" y="27" fill="#ffffff" font-size="14" font-weight="700">Organización por Propósito y Rol</text>
+
+    <!-- BARRA DE PESTAÑAS (NAVPILLS) -->
+    <g transform="translate(14, 58)">
+      <rect width="417" height="40" rx="20" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+      <text x="52" y="24" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">Buscar sesiones</text>
+      
+      <!-- Pestaña Activa: Mis solicitudes -->
+      <rect x="106" y="3" width="118" height="34" rx="17" fill="url(#pillActive)"/>
+      <text x="165" y="24" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800">Mis solicitudes</text>
+
+      <text x="274" y="24" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">Mis sesiones</text>
+      <text x="368" y="24" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">Historial</text>
+    </g>
+
+    <!-- Título de sección activa -->
+    <text x="18" y="122" fill="#e2e8f0" font-size="13" font-weight="800">Mis solicitudes (Rol Estudiante)</text>
+    <text x="18" y="136" fill="#94a3b8" font-size="10">La sección responde directamente a lo que queremos consultar:</text>
+
+    <!-- Tarjeta: Física (ACEPTADA - ENCONTRADA AL INSTANTE) -->
+    <rect x="16" y="146" width="413" height="80" rx="10" fill="#0f172a" stroke="#10b981" stroke-width="1.6"/>
+    <rect x="26" y="156" width="48" height="18" rx="4" fill="#334155"/>
+    <text x="50" y="169" text-anchor="middle" fill="#cbd5e1" font-size="10" font-weight="600">Física</text>
+    <text x="82" y="170" fill="#ffffff" font-size="14" font-weight="800">Física General y Mecánica</text>
+    <text x="26" y="190" fill="#64748b" font-size="11">Organizador: Carlos Mendoza · Fecha: 10/11/2026</text>
+    
+    <rect x="306" y="156" width="110" height="24" rx="12" fill="url(#badgeGreen)"/>
+    <text x="361" y="172" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800">✓ Aceptada</text>
+    <text x="26" y="212" fill="#38bdf8" font-size="11" font-weight="600">Ver sesión →</text>
+    <text x="328" y="212" fill="#10b981" font-size="10">Lugar confirmado</text>
+
+    <!-- Tarjeta: Química (PENDIENTE) -->
+    <rect x="16" y="234" width="413" height="74" rx="10" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <rect x="26" y="244" width="56" height="18" rx="4" fill="#334155"/>
+    <text x="54" y="257" text-anchor="middle" fill="#cbd5e1" font-size="10" font-weight="600">Química</text>
+    <text x="90" y="258" fill="#f1f5f9" font-size="13" font-weight="700">Química General</text>
+    <text x="26" y="278" fill="#64748b" font-size="11">Organizador: Carlos Mendoza · Fecha: 11/11/2026</text>
+
+    <rect x="286" y="244" width="130" height="24" rx="12" fill="#d97706" fill-opacity="0.25" stroke="#f59e0b" stroke-width="1"/>
+    <text x="351" y="260" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="700">🕒 Pendiente respuesta</text>
+    <text x="26" y="296" fill="#38bdf8" font-size="11" font-weight="600">Ver sesión →</text>
+
+    <!-- Separación de las otras materias -->
+    <rect x="16" y="316" width="413" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="26" y="335" fill="#94a3b8" font-size="10">📌 Cálculo I y Álgebra se movieron a «Buscar sesiones».</text>
+    <text x="26" y="352" fill="#94a3b8" font-size="10">📌 Programación (terminada) se movió a «Historial».</text>
+
+    <!-- Beneficio UX -->
+    <rect x="16" y="376" width="413" height="58" rx="8" fill="#064e3b" stroke="#059669" stroke-width="1"/>
+    <text x="28" y="398" fill="#6ee7b7" font-size="11" font-weight="700">✓ Encontrabilidad Instantánea (3.2 segundos):</text>
+    <text x="28" y="416" fill="#a7f3d0" font-size="11">El usuario hace 1 solo clic en «Mis solicitudes» y obtiene</text>
+    <text x="28" y="428" fill="#a7f3d0" font-size="11">inmediatamente la respuesta sin leer materias ajenas.</text>
+  </g>
+</svg>
