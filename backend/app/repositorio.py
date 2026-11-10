@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import and_, func, or_, select, text
+from sqlalchemy.orm import aliased
 from sqlalchemy.exc import IntegrityError
-from app.modelos_db import Inscripcion, SesionEstudio, Usuario
+from app.modelos_db import HistorialCambioAsistencia, Inscripcion, SesionEstudio, Usuario
 
 
 def guardar_usuario(db, nombre, email, password_hash):
@@ -44,6 +45,23 @@ def guardar_sesion(db, nombre, fecha, modalidad, cupo, abiertas, usuario_id, mat
 
 def fecha_actual():
     return datetime.now(timezone(timedelta(hours=-4))).date()
+
+
+def fecha_iso_utc(dt):
+    """
+    Convierte una fecha/hora datetime a formato ISO 8601 con sufijo 'Z' (UTC).
+    Garantiza que el frontend en el navegador la convierta con precisión exacta
+    a la hora local oficial de Bolivia (America/La_Paz, UTC-4).
+    """
+    if not dt:
+        return None
+    if isinstance(dt, str):
+        if not dt.endswith("Z") and "+" not in dt:
+            return dt + "Z"
+        return dt
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
 
 
 def motivo_para_unirse(sesion, usuario_id, inscritos, ya_inscrito, hoy=None):
@@ -92,9 +110,13 @@ def solicitar_unirse(db, sesion_id, usuario_id, hoy=None, permitir_espera=True):
     if not sesion.inscripciones_abiertas:
         raise ValueError("Las inscripciones están cerradas.")
 
-    # Paso 4: Regla: La sesión debe ser en una fecha futura respecto a hoy
-    if sesion.fecha <= (hoy or fecha_actual()):
-        raise ValueError("Solo puedes unirte a sesiones con fecha futura.")
+    # Paso 4: Regla: Permitir unirse si la sesión es HOY o en el futuro (sesion.fecha >= hoy)
+    # Se rechaza si la sesión ya ocurrió en el pasado (sesion.fecha < hoy) o si ya fue concluida
+    fecha_limite = (hoy or fecha_actual())
+    if sesion.fecha < fecha_limite:
+        raise ValueError("No puedes unirte a sesiones que ya ocurrieron en el pasado.")
+    if bool(getattr(sesion, "finalizada", False)):
+        raise ValueError("Las inscripciones están cerradas porque la sesión ya concluyó.")
 
     # Paso 5: Consultar si ya existe un registro de este estudiante para esta sesión
     inscripcion = db.get(Inscripcion, (usuario_id, sesion_id))
@@ -496,6 +518,14 @@ def listar_solicitudes_organizador(db, organizador_id, sesion_id=None):
             "posicion": posicion,          # Número de orden FIFO en lista de espera
             "fecha_solicitud": inscripcion.fecha_inscripcion.isoformat() if inscripcion.fecha_inscripcion else None,
             "fecha_respuesta": inscripcion.fecha_respuesta.isoformat() if inscripcion.fecha_respuesta else None,
+            # TAREA 8: Estado de asistencia y trámite de justificación para el organizador
+            "asistencia": inscripcion.asistencia,
+            "fecha_asistencia": inscripcion.fecha_asistencia.isoformat() if inscripcion.fecha_asistencia else None,
+            "justificacion": inscripcion.justificacion,
+            "fecha_justificacion": inscripcion.fecha_justificacion.isoformat() if inscripcion.fecha_justificacion else None,
+            "estado_justificacion": inscripcion.estado_justificacion,
+            "motivo_respuesta_justificacion": inscripcion.motivo_respuesta_justificacion,
+            "fecha_respuesta_justificacion": inscripcion.fecha_respuesta_justificacion.isoformat() if inscripcion.fecha_respuesta_justificacion else None,
         })
     return resultado
 
@@ -545,6 +575,14 @@ def listar_mis_solicitudes(db, usuario_id):
             "posicion": posicion,          # Posición en lista de espera (si estado == 'en_espera')
             "fecha_solicitud": inscripcion.fecha_inscripcion.isoformat() if inscripcion.fecha_inscripcion else None,
             "fecha_respuesta": inscripcion.fecha_respuesta.isoformat() if inscripcion.fecha_respuesta else None,
+            # TAREA 8: El estudiante consulta su resultado de asistencia y estado de justificación
+            "asistencia": inscripcion.asistencia,
+            "fecha_asistencia": fecha_iso_utc(inscripcion.fecha_asistencia),
+            "justificacion": inscripcion.justificacion,
+            "fecha_justificacion": fecha_iso_utc(inscripcion.fecha_justificacion),
+            "estado_justificacion": inscripcion.estado_justificacion,
+            "motivo_respuesta_justificacion": inscripcion.motivo_respuesta_justificacion,
+            "fecha_respuesta_justificacion": fecha_iso_utc(inscripcion.fecha_respuesta_justificacion),
         })
     return resultado
 
@@ -591,13 +629,14 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
         Inscripcion.sesion_id, func.count()
     ).where(Inscripcion.estado == "pendiente_reconfirmacion").group_by(Inscripcion.sesion_id)).all())
 
-    # Diccionario de estados de solicitud del usuario actual para cada sesión
-    mis_inscripciones = {
-        i.sesion_id: i.estado
+    # Diccionario de objetos de inscripción del usuario actual para cada sesión
+    mis_inscripciones_objs = {
+        i.sesion_id: i
         for i in db.scalars(select(Inscripcion).where(
             Inscripcion.usuario_id == usuario_id
         )).all()
     }
+    mis_inscripciones = {sid: ins.estado for sid, ins in mis_inscripciones_objs.items()}
 
     # TAREA 5: Conteo de solicitudes pendientes para mostrar en el panel del organizador
     pendientes_por_sesion = dict(db.execute(select(
@@ -618,7 +657,8 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
         es_organizador = (sesion.usuario_id == usuario_id)        # True si el usuario logueado es el creador
         en_espera_total = en_espera_por_sesion.get(sesion.id, 0)  # Total de alumnos actualmente en lista de espera
         reconfirmaciones_count = reconfirmaciones_por_sesion.get(sesion.id, 0) # Alumnos pendientes de reconfirmar
-        es_pasada = (sesion.fecha <= hoy)                         # True si la fecha de la sesión ya ocurrió
+        # Una sesión ya es del pasado únicamente si su fecha es anterior a hoy (fecha < hoy)
+        es_pasada = (sesion.fecha < hoy)
 
         # TAREA 6: Cálculo de la posición exacta (1º, 2º, etc.) en la fila de espera si el usuario está en_espera
         posicion_espera = None
@@ -660,21 +700,29 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
         # Cálculo de cupos disponibles reales (restando solicitudes aceptadas y en reconfirmación)
         cupos_libres = max(0, sesion.cupo - inscritos)
 
+        # Estado de finalización de la sesión
+        esta_finalizada = bool(getattr(sesion, "finalizada", False))
+
         # Determina si el estudiante puede enviar una solicitud normal (hay cupos libres disponibles)
+        # REGLA: Los participantes pueden unirse incluso el mismo día de la sesión (sesion.fecha >= hoy)
+        # siempre que la sesión no haya sido dada por concluida
         puede_solicitar = (
             not es_organizador
             and estado_solicitud is None
             and sesion.inscripciones_abiertas
-            and sesion.fecha > hoy
+            and not esta_finalizada
+            and sesion.fecha >= hoy
             and cupos_libres > 0
         )
 
         # TAREA 6: Determina si el estudiante puede unirse a la LISTA DE ESPERA (la sesión está al 100% llena)
+        # REGLA: Permitido incluso el mismo día programado si la sesión aún no ha concluido
         puede_solicitar_espera = (
             not es_organizador
             and estado_solicitud is None
             and sesion.inscripciones_abiertas
-            and sesion.fecha > hoy
+            and not esta_finalizada
+            and sesion.fecha >= hoy
             and cupos_libres == 0
         )
 
@@ -715,6 +763,12 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
             "reconfirmaciones_pendientes_count": reconfirmaciones_count, # Total en reconfirmación
             "motivo_reprogramacion": getattr(sesion, "motivo_reprogramacion", None),
             "es_pasada": es_pasada,                            # True si la fecha ya pasó (Feedback Clase 19)
+            "finalizada": bool(getattr(sesion, "finalizada", False)), # True si la sesión fue terminada (Tarea 8)
+            "puede_registrar_asistencia": es_organizador and (es_pasada or bool(getattr(sesion, "finalizada", False))), # Control de asistencia para organizador (Tarea 8)
+            "mi_asistencia": mis_inscripciones_objs.get(sesion.id).asistencia if mis_inscripciones_objs.get(sesion.id) else None, # Resultado de asistencia (Tarea 8)
+            "mi_estado_justificacion": mis_inscripciones_objs.get(sesion.id).estado_justificacion if mis_inscripciones_objs.get(sesion.id) else None,
+            "mi_justificacion": mis_inscripciones_objs.get(sesion.id).justificacion if mis_inscripciones_objs.get(sesion.id) else None,
+            "mi_motivo_justificacion": mis_inscripciones_objs.get(sesion.id).motivo_respuesta_justificacion if mis_inscripciones_objs.get(sesion.id) else None,
             "motivo": motivo,
         })
     return resultado
@@ -769,6 +823,19 @@ def obtener_historial(db, usuario_id):
         elif inscripcion.estado == "rechazada":
             resultado_texto = "Solicitud rechazada"
 
+        # TAREA 8: Si el organizador ya tomó asistencia, actualizar la etiqueta descriptiva
+        if inscripcion.asistencia == "presente":
+            resultado_texto = "✅ Asistencia confirmada (Presente)"
+        elif inscripcion.asistencia == "ausente":
+            if inscripcion.estado_justificacion == "aceptada":
+                resultado_texto = f"✅ Ausencia justificada (Aceptada: {inscripcion.motivo_respuesta_justificacion or 'Aprobada'})"
+            elif inscripcion.estado_justificacion == "rechazada":
+                resultado_texto = f"❌ Ausencia injustificada (Rechazada: {inscripcion.motivo_respuesta_justificacion or 'Denegada'})"
+            elif inscripcion.estado_justificacion == "pendiente":
+                resultado_texto = "⏳ Ausente - Justificación en revisión"
+            else:
+                resultado_texto = "❌ Registrado como Ausente"
+
         historial.append({
             "sesion_id": sesion.id,
             "nombre": sesion.nombre,
@@ -778,6 +845,350 @@ def obtener_historial(db, usuario_id):
             "fecha_inscripcion": fecha_inscripcion,
             "estado": inscripcion.estado,        # 'pendiente', 'aceptada', 'en_espera', 'rechazada'
             "resultado": resultado_texto,        # Texto legible para la interfaz
+            # TAREA 8: Datos de asistencia y justificación
+            "asistencia": inscripcion.asistencia,
+            "fecha_asistencia": inscripcion.fecha_asistencia,
+            "justificacion": inscripcion.justificacion,
+            "fecha_justificacion": inscripcion.fecha_justificacion,
+            "estado_justificacion": inscripcion.estado_justificacion,
+            "motivo_respuesta_justificacion": inscripcion.motivo_respuesta_justificacion,
+            "fecha_respuesta_justificacion": inscripcion.fecha_respuesta_justificacion,
         })
 
     return historial
+
+
+# =============================================================================
+# --- TAREA 8: LÓGICA DE NEGOCIO, PERMISOS Y AUDITORÍA DE ASISTENCIA ---
+# =============================================================================
+
+def finalizar_sesion(db, sesion_id, usuario_id):
+    """
+    TAREA 8: Permite al organizador dar por terminada/finalizada una sesión de estudio.
+    Restricción de seguridad: Solo el organizador creador puede finalizarla.
+    Consecuencias: Cierra inscripciones y habilita el registro de asistencia.
+    """
+    sesion = db.get(SesionEstudio, sesion_id)
+    if not sesion:
+        raise ValueError("La sesión de estudio no existe.")
+
+    # REGLA DE SEGURIDAD: Solo el organizador puede finalizar la sesión
+    if sesion.usuario_id != usuario_id:
+        raise PermissionError("Solo el organizador de la sesión tiene permisos para finalizarla.")
+
+    sesion.finalizada = True
+    sesion.inscripciones_abiertas = False
+    db.commit()
+    db.refresh(sesion)
+    return sesion
+
+
+def obtener_asistencia_sesion(db, sesion_id, usuario_id):
+    """
+    TAREA 8: Consulta el control de asistencia y justificaciones de una sesión.
+    - Organizador: Consulta la lista de todos los participantes confirmados, su asistencia,
+      justificaciones recibidas y el historial de cambios.
+    - Participante confirmado: Consulta su propio estado de asistencia y justificación.
+    - Usuario ajeno: Es bloqueado con PermissionError (403).
+    """
+    sesion = db.get(SesionEstudio, sesion_id)
+    if not sesion:
+        raise ValueError("La sesión de estudio no existe.")
+
+    es_organizador = (sesion.usuario_id == usuario_id)
+
+    # Consulta participantes confirmados con estado 'aceptada'
+    consulta = (
+        select(Inscripcion, Usuario)
+        .join(Usuario, Inscripcion.usuario_id == Usuario.id)
+        .where(
+            Inscripcion.sesion_id == sesion_id,
+            Inscripcion.estado == "aceptada"
+        )
+        .order_by(Usuario.nombre.asc())
+    )
+
+    participantes = []
+    inscripcion_propia = None
+
+    for ins, usu in db.execute(consulta):
+        if usu.id == usuario_id:
+            inscripcion_propia = ins
+
+        participantes.append({
+            "usuario_id": usu.id,
+            "usuario_nombre": usu.nombre,
+            "usuario_email": usu.email,
+            "asistencia": ins.asistencia,
+            "fecha_asistencia": fecha_iso_utc(ins.fecha_asistencia),
+            "justificacion": ins.justificacion,
+            "fecha_justificacion": fecha_iso_utc(ins.fecha_justificacion),
+            "estado_justificacion": ins.estado_justificacion,
+            "motivo_respuesta_justificacion": ins.motivo_respuesta_justificacion,
+            "fecha_respuesta_justificacion": fecha_iso_utc(ins.fecha_respuesta_justificacion),
+        })
+
+    # REGLA DE PERMISOS: Si no es el organizador y no es un participante confirmado, bloquear acceso
+    if not es_organizador and inscripcion_propia is None:
+        raise PermissionError("No tienes permisos para consultar la asistencia de esta sesión.")
+
+    # Consulta el historial de cambios auditados vinculando tanto al Actor como al Estudiante afectado
+    UsuarioActor = aliased(Usuario, name="usuario_actor")
+    UsuarioEstudiante = aliased(Usuario, name="usuario_estudiante")
+
+    consulta_historial = (
+        select(HistorialCambioAsistencia, UsuarioActor, UsuarioEstudiante)
+        .join(UsuarioActor, HistorialCambioAsistencia.actor_id == UsuarioActor.id)
+        .join(UsuarioEstudiante, HistorialCambioAsistencia.usuario_id == UsuarioEstudiante.id)
+        .where(HistorialCambioAsistencia.sesion_id == sesion_id)
+        .order_by(HistorialCambioAsistencia.fecha.asc(), HistorialCambioAsistencia.id.asc())
+    )
+
+    historial = []
+    for h, actor, estudiante in db.execute(consulta_historial):
+        # Si es organizador ve todo el historial; si es estudiante, solo los eventos de su propio registro
+        if es_organizador or h.usuario_id == usuario_id:
+            historial.append({
+                "id": h.id,
+                "usuario_id": h.usuario_id,
+                "estudiante_nombre": estudiante.nombre,
+                "estudiante_email": estudiante.email,
+                "actor_id": h.actor_id,
+                "actor_nombre": actor.nombre,
+                "actor_rol": "Organizador" if h.actor_id == sesion.usuario_id else "Estudiante",
+                "tipo_evento": h.tipo_evento,
+                "estado_anterior": h.estado_anterior,
+                "estado_nuevo": h.estado_nuevo,
+                "detalle": h.detalle,
+                "fecha": fecha_iso_utc(h.fecha),
+            })
+
+    hoy = fecha_actual()
+    # Verifica si la fecha de la sesión es hoy o anterior (ya llegó el día de la sesión)
+    es_pasada = (sesion.fecha <= hoy)
+    # Una sesión se considera concluida si su fecha ya ocurrió/es hoy, o si el organizador la finalizó explícitamente
+    esta_concluida = es_pasada or bool(getattr(sesion, "finalizada", False))
+    # El organizador puede gestionar la asistencia únicamente cuando la sesión está concluida
+    puede_gestionar = es_organizador and esta_concluida
+
+    # TAREA 8: Determina si ya se registró la asistencia de participantes previamente en esta sesión
+    asistencia_registrada_previamente = any(
+        p.get("asistencia") is not None for p in participantes
+    )
+
+    return {
+        "sesion_id": sesion.id,
+        "sesion_nombre": sesion.nombre,
+        "fecha_sesion": sesion.fecha.isoformat() if hasattr(sesion.fecha, "isoformat") else str(sesion.fecha),
+        "es_organizador": es_organizador,
+        "finalizada": bool(getattr(sesion, "finalizada", False)),
+        "es_pasada": es_pasada,
+        "esta_concluida": esta_concluida,
+        "puede_gestionar": puede_gestionar,
+        "asistencia_registrada_previamente": asistencia_registrada_previamente,
+        "participantes": participantes if es_organizador else [p for p in participantes if p["usuario_id"] == usuario_id],
+        "historial": historial,
+    }
+
+
+def registrar_asistencia_batch(db, sesion_id, organizador_id, asistencias):
+    """
+    TAREA 8: El organizador registra presentes o ausentes para los participantes confirmados.
+    Restricciones y reglas de negocio:
+    1. Solo el organizador creador tiene permisos para registrar o modificar la asistencia.
+    2. La sesión debe haber concluido (fecha <= hoy o finalizada); si no, se finaliza automáticamente al registrar.
+    3. Solo se puede registrar asistencia de participantes con inscripción confirmada ('aceptada').
+    4. Conserva el historial de cambios con tipo_evento='registro_asistencia'.
+    """
+    sesion = db.get(SesionEstudio, sesion_id)
+    if not sesion:
+        raise ValueError("La sesión de estudio no existe.")
+
+    # REGLA DE SEGURIDAD 1: Verificación estricta de organizador
+    if sesion.usuario_id != organizador_id:
+        raise PermissionError("Solo el organizador de la sesión tiene permisos para registrar o modificar la asistencia.")
+
+    # Comprobar que la sesión esté terminada o darla por concluida
+    hoy = fecha_actual()
+    es_pasada = (sesion.fecha <= hoy)
+    if not (es_pasada or bool(getattr(sesion, "finalizada", False))):
+        sesion.finalizada = True
+        sesion.inscripciones_abiertas = False
+
+    ahora = datetime.now(timezone.utc).replace(tzinfo=None)
+    actualizados = 0
+
+    for item in asistencias:
+        uid = item.usuario_id
+        asist_val = item.asistencia.strip().lower()
+        if asist_val not in ("presente", "ausente"):
+            raise ValueError(f"Estado de asistencia inválido: '{asist_val}'. Debe ser 'presente' o 'ausente'.")
+
+        inscripcion = db.get(Inscripcion, (uid, sesion_id))
+        if not inscripcion:
+            raise ValueError(f"El usuario con ID {uid} no está inscrito en esta sesión.")
+
+        # REGLA: Solo participantes con cupo confirmado (aceptada)
+        if inscripcion.estado != "aceptada":
+            raise ValueError("Solo se puede registrar asistencia de participantes con inscripción confirmada (aceptada).")
+
+        estado_anterior = inscripcion.asistencia
+        inscripcion.asistencia = asist_val
+        inscripcion.fecha_asistencia = ahora
+
+        # Si el usuario era ausente y se le cambia a presente, se resetea la justificación pendiente
+        if asist_val == "presente" and inscripcion.estado_justificacion == "pendiente":
+            inscripcion.estado_justificacion = None
+
+        # Obtenemos el nombre del estudiante para identificarlo claramente en la auditoría
+        estudiante_obj = db.get(Usuario, uid)
+        nombre_est = estudiante_obj.nombre if estudiante_obj else f"Usuario #{uid}"
+
+        # REGLA TAREA 8: Distinguir si es el primer registro o una edición posterior
+        # Si estado_anterior es None -> Es el primer registro de asistencia
+        # Si estado_anterior ya tenía un valor -> Es una modificación/edición de asistencia
+        es_modificacion = (estado_anterior is not None)
+        tipo_evento = "modificacion_asistencia" if es_modificacion else "registro_asistencia"
+
+        if es_modificacion:
+            detalle = f"Asistencia de {nombre_est} modificada de {estado_anterior.upper()} a: {asist_val.upper()}"
+        else:
+            detalle = f"Asistencia de {nombre_est} registrada como: {asist_val.upper()}"
+
+        # REGISTRO DE AUDITORÍA: Guardar evento en HistorialCambioAsistencia identificando al alumno
+        db.add(HistorialCambioAsistencia(
+            sesion_id=sesion_id,
+            usuario_id=uid,
+            actor_id=organizador_id,
+            tipo_evento=tipo_evento,
+            estado_anterior=estado_anterior,
+            estado_nuevo=asist_val,
+            detalle=detalle,
+            fecha=ahora,
+        ))
+        actualizados += 1
+
+    db.commit()
+    return {
+        "mensaje": f"Se registró la asistencia de {actualizados} participante(s) correctamente.",
+        "actualizados": actualizados,
+    }
+
+
+def presentar_justificacion(db, sesion_id, estudiante_id, texto_justificacion):
+    """
+    TAREA 8: Un estudiante registrado como ausente presenta su justificación.
+    Restricciones y reglas de negocio:
+    1. Solo el propio estudiante titular puede presentar su justificación.
+    2. Debe estar inscrito en la sesión y figurar como 'ausente'.
+    3. El texto no puede estar vacío (mínimo 5 caracteres).
+    4. Pasa el estado de justificación a 'pendiente' y guarda la marca de tiempo y auditoría.
+    """
+    sesion = db.get(SesionEstudio, sesion_id)
+    if not sesion:
+        raise ValueError("La sesión de estudio no existe.")
+
+    inscripcion = db.get(Inscripcion, (estudiante_id, sesion_id))
+    if not inscripcion:
+        raise ValueError("No estás inscrito en esta sesión.")
+
+    # REGLA DE ESTADOS: Solo los ausentes pueden justificar inasistencia
+    if inscripcion.asistencia != "ausente":
+        raise ValueError("Solo los estudiantes registrados como ausentes pueden presentar una justificación.")
+
+    texto_limpio = texto_justificacion.strip()
+    if len(texto_limpio) < 5:
+        raise ValueError("La justificación debe contener al menos 5 caracteres explicativos.")
+
+    ahora = datetime.now(timezone.utc).replace(tzinfo=None)
+    estado_ant = inscripcion.estado_justificacion or "sin_justificar"
+
+    inscripcion.justificacion = texto_limpio
+    inscripcion.estado_justificacion = "pendiente"
+    inscripcion.fecha_justificacion = ahora
+
+    estudiante_obj = db.get(Usuario, estudiante_id)
+    nombre_est = estudiante_obj.nombre if estudiante_obj else f"Usuario #{estudiante_id}"
+
+    # REGISTRO DE AUDITORÍA: Guardar el evento de envío en el historial identificando al estudiante
+    db.add(HistorialCambioAsistencia(
+        sesion_id=sesion_id,
+        usuario_id=estudiante_id,
+        actor_id=estudiante_id,
+        tipo_evento="envio_justificacion",
+        estado_anterior=estado_ant,
+        estado_nuevo="pendiente",
+        detalle=f"Justificación enviada por {nombre_est}: '{texto_limpio}'",
+        fecha=ahora,
+    ))
+    db.commit()
+
+    return {
+        "mensaje": "Justificación presentada correctamente. Queda en estado pendiente de evaluación por el organizador.",
+        "estado_justificacion": "pendiente",
+        "justificacion": texto_limpio,
+    }
+
+
+def responder_justificacion(db, sesion_id, estudiante_id, organizador_id, decision, motivo):
+    """
+    TAREA 8: El organizador acepta o rechaza una justificación con motivo obligatorio.
+    Restricciones y reglas de negocio:
+    1. Solo el organizador creador tiene permisos para resolver justificaciones.
+    2. El motivo explicativo es obligatorio (mínimo 3 caracteres).
+    3. Debe existir una justificación en estado 'pendiente'.
+    4. Consecuencias: estado pasa a 'aceptada' o 'rechazada', persistiendo la fecha y el motivo.
+    5. Conserva el historial de cambios con tipo_evento='resolucion_justificacion'.
+    """
+    sesion = db.get(SesionEstudio, sesion_id)
+    if not sesion:
+        raise ValueError("La sesión de estudio no existe.")
+
+    # REGLA DE SEGURIDAD: Solo el organizador puede resolver justificaciones
+    if sesion.usuario_id != organizador_id:
+        raise PermissionError("Solo el organizador de la sesión puede aceptar o rechazar justificaciones.")
+
+    inscripcion = db.get(Inscripcion, (estudiante_id, sesion_id))
+    if not inscripcion:
+        raise ValueError("El estudiante no está inscrito en esta sesión.")
+
+    # REGLA DE ESTADOS: Solo se pueden responder justificaciones en estado pendiente
+    if inscripcion.estado_justificacion != "pendiente":
+        raise ValueError("No existe una justificación pendiente para este participante.")
+
+    dec = decision.strip().lower()
+    if dec not in ("aceptar", "rechazar"):
+        raise ValueError("La decisión debe ser 'aceptar' o 'rechazar'.")
+
+    motivo_limpio = motivo.strip()
+    if len(motivo_limpio) < 3:
+        raise ValueError("El motivo de la decisión es obligatorio (mínimo 3 caracteres).")
+
+    ahora = datetime.now(timezone.utc).replace(tzinfo=None)
+    nuevo_estado = "aceptada" if dec == "aceptar" else "rechazada"
+
+    inscripcion.estado_justificacion = nuevo_estado
+    inscripcion.motivo_respuesta_justificacion = motivo_limpio
+    inscripcion.fecha_respuesta_justificacion = ahora
+
+    estudiante_obj = db.get(Usuario, estudiante_id)
+    nombre_est = estudiante_obj.nombre if estudiante_obj else f"Usuario #{estudiante_id}"
+
+    # REGISTRO DE AUDITORÍA: Guardar la resolución en el historial de cambios identificando al estudiante
+    db.add(HistorialCambioAsistencia(
+        sesion_id=sesion_id,
+        usuario_id=estudiante_id,
+        actor_id=organizador_id,
+        tipo_evento="resolucion_justificacion",
+        estado_anterior="pendiente",
+        estado_nuevo=nuevo_estado,
+        detalle=f"Decisión para {nombre_est}: {dec.upper()}. Motivo: {motivo_limpio}",
+        fecha=ahora,
+    ))
+    db.commit()
+
+    return {
+        "mensaje": f"Justificación {nuevo_estado} correctamente con motivo: '{motivo_limpio}'.",
+        "estado_justificacion": nuevo_estado,
+        "motivo": motivo_limpio,
+    }

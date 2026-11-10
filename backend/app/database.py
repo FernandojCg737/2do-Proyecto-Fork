@@ -91,6 +91,13 @@ def inicializar_db():
                 f"ALTER TABLE sesiones ADD COLUMN motivo_reprogramacion {tipo_str}"
             ))
 
+        # TAREA 8: Migración de columna 'finalizada' en sesiones (indica conclusión de la sesión)
+        if "finalizada" not in columnas:
+            tipo_bool = "BOOLEAN" if engine.dialect.name == "postgresql" else "BOOLEAN"
+            conexion.execute(text(
+                f"ALTER TABLE sesiones ADD COLUMN finalizada {tipo_bool} NOT NULL DEFAULT 0"
+            ))
+
         columnas_inscripciones = [
             columna["name"]
             for columna in inspect(conexion).get_columns("inscriprciones")
@@ -117,4 +124,47 @@ def inicializar_db():
             tipo_dt = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
             conexion.execute(text(
                 f"ALTER TABLE inscriprciones ADD COLUMN fecha_respuesta {tipo_dt}"
+            ))
+
+        # --- TAREA 8: Migración de columnas de Asistencia y Justificaciones en inscripciones ---
+        if "asistencia" not in columnas_inscripciones:
+            tipo_str = "VARCHAR(20)" if engine.dialect.name == "postgresql" else "TEXT"
+            conexion.execute(text(
+                f"ALTER TABLE inscriprciones ADD COLUMN asistencia {tipo_str}"
+            ))
+
+        if "fecha_asistencia" not in columnas_inscripciones:
+            tipo_dt = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
+            conexion.execute(text(
+                f"ALTER TABLE inscriprciones ADD COLUMN fecha_asistencia {tipo_dt}"
+            ))
+
+        if "justificacion" not in columnas_inscripciones:
+            tipo_str = "VARCHAR(1000)" if engine.dialect.name == "postgresql" else "TEXT"
+            conexion.execute(text(
+                f"ALTER TABLE inscriprciones ADD COLUMN justificacion {tipo_str}"
+            ))
+
+        if "fecha_justificacion" not in columnas_inscripciones:
+            tipo_dt = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
+            conexion.execute(text(
+                f"ALTER TABLE inscriprciones ADD COLUMN fecha_justificacion {tipo_dt}"
+            ))
+
+        if "estado_justificacion" not in columnas_inscripciones:
+            tipo_str = "VARCHAR(20)" if engine.dialect.name == "postgresql" else "TEXT"
+            conexion.execute(text(
+                f"ALTER TABLE inscriprciones ADD COLUMN estado_justificacion {tipo_str}"
+            ))
+
+        if "motivo_respuesta_justificacion" not in columnas_inscripciones:
+            tipo_str = "VARCHAR(1000)" if engine.dialect.name == "postgresql" else "TEXT"
+            conexion.execute(text(
+                f"ALTER TABLE inscriprciones ADD COLUMN motivo_respuesta_justificacion {tipo_str}"
+            ))
+
+        if "fecha_respuesta_justificacion" not in columnas_inscripciones:
+            tipo_dt = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
+            conexion.execute(text(
+                f"ALTER TABLE inscriprciones ADD COLUMN fecha_respuesta_justificacion {tipo_dt}"
             ))

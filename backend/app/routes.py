@@ -11,10 +11,14 @@ from app.database import get_db
 from app.modelos_db import Inscripcion
 from app.models import (
     CambiarPassword,
+    EnviarJustificacion,
+    ItemAsistencia,
     Login,
     RecuperarPassword,
+    RegistrarAsistenciaBatch,
     Registro,
     ReprogramarSesion,
+    ResponderJustificacion,
     ResponderSolicitud,
     SesionDeEstudio,
 )
@@ -22,15 +26,20 @@ from app.models import (
 from app.repositorio import (
     buscar_sesiones,
     cerrar_inscripciones as cerrar_inscripciones_db,
+    finalizar_sesion,
     get_user_by_email,
     guardar_sesion,
     guardar_usuario,
     listar_mis_solicitudes,
     listar_sesiones,
     listar_solicitudes_organizador,
+    obtener_asistencia_sesion,
     obtener_historial,
+    presentar_justificacion,
     reconfirmar_participacion,
+    registrar_asistencia_batch,
     reprogramar_sesion,
+    responder_justificacion,
     responder_solicitud,
     salir_de_sesion,
     solicitar_unirse,
@@ -455,3 +464,120 @@ def get_historial(
     usuario=Depends(obtener_usuario_actual),
 ):
     return obtener_historial(db, usuario.id)
+
+
+# =============================================================================
+# --- TAREA 8: ENDPOINTS PARA ASISTENCIA, JUSTIFICACIONES Y AUDITORÍA ---
+# =============================================================================
+
+@router.post("/sesiones/{sesion_id}/finalizar")
+def endpoint_finalizar_sesion(
+    sesion_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 8: Da por terminada la sesión para habilitar el control de asistencia.
+    Restricción: Solo el organizador creador tiene autorización (HTTP 403 si es ajeno).
+    """
+    try:
+        finalizar_sesion(db, sesion_id, usuario.id)
+        return {"mensaje": "Sesión dada por concluida exitosamente."}
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get("/sesiones/{sesion_id}/asistencia")
+def endpoint_consultar_asistencia(
+    sesion_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 8: Consulta el estado de asistencia y el historial de cambios.
+    - Organizador: Lista completa de participantes confirmados y bitácora de auditoría.
+    - Participante: Su propio resultado y estado de justificación.
+    - Usuario ajeno: HTTP 403 Forbidden.
+    """
+    try:
+        return obtener_asistencia_sesion(db, sesion_id, usuario.id)
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/sesiones/{sesion_id}/asistencia")
+def endpoint_registrar_asistencia(
+    sesion_id: int,
+    data: RegistrarAsistenciaBatch,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 8: El organizador registra presentes o ausentes para los participantes confirmados.
+    Restricciones:
+    - Solo el organizador creador puede registrar o modificar asistencia (HTTP 403).
+    - Solo participantes con cupo confirmado (HTTP 400 si se intenta con otros).
+    - Conserva el historial de auditoría de cada modificación.
+    """
+    try:
+        return registrar_asistencia_batch(db, sesion_id, usuario.id, data.asistencias)
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/sesiones/{sesion_id}/justificar")
+def endpoint_presentar_justificacion(
+    sesion_id: int,
+    data: EnviarJustificacion,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 8: Un estudiante registrado como ausente remite su justificación de inasistencia.
+    Restricciones:
+    - Solo el propio estudiante ausente puede justificar (HTTP 400 si no es ausente).
+    - El texto explicativo no puede estar vacío (mínimo 5 caracteres).
+    - Estado pasa a 'pendiente' y se registra en el historial de cambios.
+    """
+    try:
+        return presentar_justificacion(db, sesion_id, usuario.id, data.justificacion)
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/sesiones/{sesion_id}/usuarios/{estudiante_id}/responder-justificacion")
+def endpoint_responder_justificacion(
+    sesion_id: int,
+    estudiante_id: int,
+    data: ResponderJustificacion,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 8: El organizador evalúa la justificación recibida (Aceptar o Rechazar).
+    Restricciones:
+    - Solo el organizador creador puede resolver la justificación (HTTP 403 para usuarios ajenos).
+    - El motivo explicativo es obligatorio (mínimo 3 caracteres).
+    - Consecuencia: Se actualiza el estado y se conserva la bitácora en el historial de cambios.
+    """
+    try:
+        return responder_justificacion(
+            db=db,
+            sesion_id=sesion_id,
+            estudiante_id=estudiante_id,
+            organizador_id=usuario.id,
+            decision=data.decision,
+            motivo=data.motivo,
+        )
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
