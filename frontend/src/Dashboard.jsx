@@ -3,6 +3,11 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Alert, Loading } from "./Components";
 import { apiRequest } from "./api";
 import NavPills from "./NavPills";
+import {
+  InsigniaAsistencia,
+  ModalControlAsistencia,
+  ModalJustificarAusencia,
+} from "./AsistenciaComponents";
 
 // Formatea fecha a formato legible local DD/MM/YYYY
 function formatearFecha(fecha) {
@@ -46,6 +51,10 @@ export default function Dashboard({ user }) {
   const [mensaje, setMensaje] = useState("");
   const [procesando, setProcesando] = useState(null);
   const [actualizacion, setActualizacion] = useState(0);
+
+  // --- TAREA 8: Modales de Control de Asistencia y Justificaciones ---
+  const [modalAsistencia, setModalAsistencia] = useState(null); // { id, nombre }
+  const [modalJustificar, setModalJustificar] = useState(null); // { id, nombre }
 
   useEffect(() => {
     let activo = true;
@@ -236,6 +245,29 @@ export default function Dashboard({ user }) {
                               </p>
                             )}
 
+                            {/* TAREA 8: Consulta de asistencia y justificación para el estudiante */}
+                            {sol.estado === "aceptada" && (
+                              <div className="mt-2 mb-2 p-2 bg-light rounded border">
+                                <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                  <span className="small fw-semibold text-dark">
+                                    Resultado de asistencia:
+                                  </span>
+                                  <InsigniaAsistencia
+                                    asistencia={sol.asistencia}
+                                    estadoJustificacion={sol.estado_justificacion}
+                                    motivoJustificacion={sol.motivo_respuesta_justificacion}
+                                    justificacion={sol.justificacion}
+                                    onAbrirJustificar={() =>
+                                      setModalJustificar({
+                                        id: sol.sesion_id,
+                                        nombre: sol.sesion_nombre,
+                                      })
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            )}
+
                             {/* Acciones de la solicitud */}
                             <div className="pt-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
                               <Link to="/sesions" className="btn btn-outline-primary btn-sm rounded-pill px-3">
@@ -297,6 +329,41 @@ export default function Dashboard({ user }) {
                     </div>
                   ) : (
                     <div className="d-flex flex-column gap-3">
+                      {/* TAREA 8: Acceso rápido al Control de Asistencia para el Organizador */}
+                      <div className="card bg-primary-subtle border-0 rounded-3 p-3">
+                        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                          <div>
+                            <h3 className="h6 fw-bold mb-0 text-dark">
+                              📋 Control de Asistencia y Justificaciones
+                            </h3>
+                            <p className="text-secondary small mb-0">
+                              Gestiona el registro de presentes o ausentes y resuelve las justificaciones de tus sesiones.
+                            </p>
+                          </div>
+                          <div className="d-flex gap-2 flex-wrap">
+                            {Array.from(
+                              new Map(
+                                solicitudesOrganizador.map((s) => [
+                                  s.sesion_id,
+                                  { id: s.sesion_id, nombre: s.sesion_nombre },
+                                ])
+                              ).values()
+                            ).map((ses) => (
+                              <button
+                                key={ses.id}
+                                type="button"
+                                className="btn btn-primary btn-sm rounded-pill fw-semibold shadow-sm"
+                                onClick={() =>
+                                  setModalAsistencia({ id: ses.id, nombre: ses.nombre })
+                                }
+                              >
+                                📋 Tomar asistencia: {ses.nombre}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Subsección: Solicitudes pendientes de respuesta */}
                       {pendientesOrganizador.length > 0 && (
                         <div>
@@ -407,6 +474,29 @@ export default function Dashboard({ user }) {
               </div>
             )}
           </div>
+        )}
+
+        {/* --- TAREA 8: Modal de Control de Asistencia y Justificaciones para Organizador --- */}
+        {modalAsistencia && (
+          <ModalControlAsistencia
+            sesionId={modalAsistencia.id}
+            sesionNombre={modalAsistencia.nombre}
+            onClose={() => setModalAsistencia(null)}
+            onUpdated={() => setActualizacion((v) => v + 1)}
+          />
+        )}
+
+        {/* --- TAREA 8: Modal de Justificación de Inasistencia para Estudiante Ausente --- */}
+        {modalJustificar && (
+          <ModalJustificarAusencia
+            sesionId={modalJustificar.id}
+            sesionNombre={modalJustificar.nombre}
+            onClose={() => setModalJustificar(null)}
+            onSuccess={(msg) => {
+              setMensaje(msg);
+              setActualizacion((v) => v + 1);
+            }}
+          />
         )}
       </div>
     </div>

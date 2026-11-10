@@ -3,6 +3,11 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Alert, Input, Loading } from "./Components";
 import { apiRequest } from "./api";
 import NavPills from "./NavPills";
+import {
+  InsigniaAsistencia,
+  ModalControlAsistencia,
+  ModalJustificarAusencia,
+} from "./AsistenciaComponents";
 
 // Diccionario de nombres legibles para los chips de filtros activos
 const nombresFiltros = {
@@ -63,6 +68,10 @@ export default function SesionsPage() {
   const [reprogFecha, setReprogFecha] = useState("");
   const [reprogMotivo, setReprogMotivo] = useState("");
   const [guardandoReprog, setGuardandoReprog] = useState(false);
+
+  // --- TAREA 8: Estados para el control de asistencia y justificaciones ---
+  const [modalAsistencia, setModalAsistencia] = useState(null); // { id, nombre }
+  const [modalJustificar, setModalJustificar] = useState(null); // { id, nombre }
 
   useEffect(() => {
     let activo = true;
@@ -518,6 +527,16 @@ export default function SesionsPage() {
                           </button>
                         )}
 
+                        {/* TAREA 8: Control de asistencia y resolución de justificaciones para el organizador */}
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-success w-100 mt-2 fw-semibold"
+                          onClick={() => setModalAsistencia({ id: sesion.id, nombre: sesion.nombre })}
+                          title="Gestionar lista de presentes/ausentes y evaluar justificaciones"
+                        >
+                          📋 Control de asistencia y justificaciones
+                        </button>
+
                         {/* Contenido desplegable con la lista de solicitudes de esta sesión */}
                         {estaAbierto && (
                           <div className="mt-3 p-2 bg-light border rounded">
@@ -643,6 +662,18 @@ export default function SesionsPage() {
                             <span className="badge bg-success py-2">
                               ✅ Inscripción confirmada (estás dentro)
                             </span>
+
+                            {/* TAREA 8: Estado de asistencia del estudiante y acción de justificar */}
+                            <InsigniaAsistencia
+                              asistencia={sesion.mi_asistencia}
+                              estadoJustificacion={sesion.mi_estado_justificacion}
+                              motivoJustificacion={sesion.mi_motivo_justificacion}
+                              justificacion={sesion.mi_justificacion}
+                              onAbrirJustificar={() =>
+                                setModalJustificar({ id: sesion.id, nombre: sesion.nombre })
+                              }
+                            />
+
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-danger w-100"
@@ -763,6 +794,29 @@ export default function SesionsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* --- TAREA 8: Modal de Control de Asistencia y Justificaciones para Organizador --- */}
+      {modalAsistencia && (
+        <ModalControlAsistencia
+          sesionId={modalAsistencia.id}
+          sesionNombre={modalAsistencia.nombre}
+          onClose={() => setModalAsistencia(null)}
+          onUpdated={() => setActualizacion((v) => v + 1)}
+        />
+      )}
+
+      {/* --- TAREA 8: Modal de Justificación de Inasistencia para Estudiante Ausente --- */}
+      {modalJustificar && (
+        <ModalJustificarAusencia
+          sesionId={modalJustificar.id}
+          sesionNombre={modalJustificar.nombre}
+          onClose={() => setModalJustificar(null)}
+          onSuccess={(msg) => {
+            setMensaje(msg);
+            setActualizacion((v) => v + 1);
+          }}
+        />
       )}
 
       <p className="text-center mt-4">

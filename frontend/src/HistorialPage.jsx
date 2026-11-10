@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Alert, Loading } from "./Components";
 import { apiRequest } from "./api";
 import NavPills from "./NavPills";
+import { InsigniaAsistencia, ModalJustificarAusencia } from "./AsistenciaComponents";
 
 // Formatea fecha YYYY-MM-DD a DD/MM/YYYY
 function formatearFecha(fecha) {
@@ -15,17 +16,23 @@ function formatearFecha(fecha) {
   return String(fecha);
 }
 
-// Formatea fecha y hora con zona horaria de Bolivia
+// Formatea fecha y hora con zona horaria de Bolivia (America/La_Paz, UTC-4)
 function formatearFechaHora(fecha) {
   if (!fecha) return "Fecha no registrada";
 
-  return new Date(fecha).toLocaleString("es-BO", {
+  let str = String(fecha).trim();
+  if (!str.endsWith("Z") && !str.includes("+") && !str.slice(10).includes("-")) {
+    str = str + "Z";
+  }
+
+  return new Date(str).toLocaleString("es-BO", {
     timeZone: "America/La_Paz",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: true,
   });
 }
 
@@ -33,7 +40,10 @@ export default function HistorialPage() {
   const [historial, setHistorial] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
   const [actualizacion, setActualizacion] = useState(0);
+  // TAREA 8: Modal para presentar justificación desde Mi historial
+  const [modalJustificar, setModalJustificar] = useState(null);
 
   useEffect(() => {
     let activo = true;
@@ -139,14 +149,43 @@ export default function HistorialPage() {
                 </p>
 
                 {/* Resultado textual legible */}
-                <p className="mb-0">
+                <p className="mb-2">
                   <strong>Resultado:</strong>{" "}
                   <span className="fw-semibold">{registro.resultado}</span>
                 </p>
+
+                {/* TAREA 8: Detalle interactivo de Asistencia y Justificación */}
+                {registro.estado === "aceptada" && (
+                  <div className="pt-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span className="small text-muted fw-semibold">Control de asistencia:</span>
+                    <InsigniaAsistencia
+                      asistencia={registro.asistencia}
+                      estadoJustificacion={registro.estado_justificacion}
+                      motivoJustificacion={registro.motivo_respuesta_justificacion}
+                      justificacion={registro.justificacion}
+                      onAbrirJustificar={() =>
+                        setModalJustificar({ id: registro.sesion_id, nombre: registro.nombre })
+                      }
+                    />
+                  </div>
+                )}
               </div>
             </article>
           ))}
         </div>
+      )}
+
+      {/* TAREA 8: Modal para presentar justificación */}
+      {modalJustificar && (
+        <ModalJustificarAusencia
+          sesionId={modalJustificar.id}
+          sesionNombre={modalJustificar.nombre}
+          onClose={() => setModalJustificar(null)}
+          onSuccess={(msg) => {
+            setMensaje(msg);
+            setActualizacion((v) => v + 1);
+          }}
+        />
       )}
     </div>
   );
