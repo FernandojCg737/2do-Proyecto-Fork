@@ -120,3 +120,48 @@ class ResponderJustificacion(BaseModel):
         if v not in ("aceptar", "rechazar"):
             raise ValueError("La decisión debe ser exactamente 'aceptar' o 'rechazar'.")
         return v
+
+
+# ==============================================================================
+# --- TAREA 9: Esquema de Validación para Cancelación de Sesión (StudyMatch) ---
+# ==============================================================================
+class CancelarSesion(BaseModel):
+    """
+    Payload recibido cuando el organizador cancela una sesión de estudio.
+    Reglas de la Diapositiva 12/13:
+    - motivo: Texto explicativo obligatorio (mínimo 5 caracteres para evitar justificaciones vacías).
+    """
+    motivo: str = Field(min_length=5, max_length=1000)
+
+    @field_validator("motivo")
+    @classmethod
+    def validar_motivo(cls, valor: str) -> str:
+        # Sanitizar y verificar que el motivo no sea solo espacios en blanco
+        texto = valor.strip()
+        if len(texto) < 5:
+            raise ValueError("El motivo de cancelación debe tener al menos 5 caracteres.")
+        return texto
+
+
+
+# ==============================================================================
+# --- CLASE 21: Esquemas de Pydantic para Analítica de Interacción ---
+# ==============================================================================
+class EventoCreate(BaseModel):
+    """
+    Esquema para recibir eventos desde track(evento, props).
+    Aplica la Regla de Privacidad de IHC: 'Registren la acción, no a la persona'.
+    Filtra cualquier dato personal identificable (nombres, correos, descripciones).
+    """
+    evento: str = Field(min_length=1)
+    props: dict = Field(default_factory=dict)
+    fecha: str | None = None
+
+    @field_validator("props")
+    @classmethod
+    def filtrar_privacidad(cls, valor: dict) -> dict:
+        # Lista de campos prohibidos para preservar la privacidad de los usuarios
+        campos_sensibles = {"email", "correo", "nombre", "usuario", "password", "descripcion", "monto", "token"}
+        # Retorna solo las propiedades que no contengan datos sensibles
+        return {k: v for k, v in valor.items() if str(k).lower() not in campos_sensibles}
+

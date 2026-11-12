@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Alert, Input, Loading } from "./Components";
 import { apiRequest } from "./api";
 import NavPills from "./NavPills";
+import { track } from "./analitica";
 import {
   InsigniaAsistencia,
   ModalControlAsistencia,
@@ -73,6 +74,11 @@ export default function SesionsPage() {
   const [modalAsistencia, setModalAsistencia] = useState(null); // { id, nombre }
   const [modalJustificar, setModalJustificar] = useState(null); // { id, nombre }
 
+  // --- TAREA 9: Estados para la cancelación formal de sesiones por el organizador ---
+  const [modalCancelar, setModalCancelar] = useState(null); // Sesión seleccionada para cancelar
+  const [motivoCancelacion, setMotivoCancelacion] = useState(""); // Motivo obligatorio con mínimo 5 letras
+  const [cancelando, setCancelando] = useState(false); // Bandera indicadora de proceso asíncrono
+
   useEffect(() => {
     let activo = true;
     const controlador = new AbortController();
@@ -90,6 +96,13 @@ export default function SesionsPage() {
         if (activo) {
           setSesiones(lista);
           setMaterias(listaMaterias);
+
+          // TAREA 9 (PARTE A): Registrar telemetría de búsquedas o filtros sin resultados (Diapositiva 11/13)
+          if (lista.length === 0 && consulta) {
+            track("busqueda_sin_resultados", {
+              materia: (filtros.materia || "general").toLowerCase(),
+            });
+          }
         }
       } catch (err) {
         if (activo) setError(err.message);
@@ -153,23 +166,103 @@ export default function SesionsPage() {
   }
 
   // ==============================================================================
-  // --- TAREA 5, 6 & 7: ACCIONES DEL ESTUDIANTE Y ORGANIZADOR ---
+  // --- TAREA 5, 6, 7 & 9: ACCIONES DEL ESTUDIANTE Y ORGANIZADOR ---
   // ==============================================================================
 
-  // Solicitar unirse o entrar en lista de espera
-  async function solicitarUnirse(sesionId) {
+  // Solicitar unirse o entrar en lista de espera con telemetría de embudo (Diapositiva 11/13)
+  async function solicitarUnirse(sesion) {
+    const sesionId = typeof sesion === "object" ? sesion.id : sesion;
+    const sesionObj = typeof sesion === "object" ? sesion : sesiones.find((s) => s.id === sesionId);
+    const materiaNombre = (sesionObj?.materia || "general").toLowerCase();
+
     setInscribiendo(sesionId);
     setErrorInscripcion("");
     setMensaje("");
 
+    // Diapositiva 11/13: Paso 1 del embudo de solicitud (evento de inicio)
+    track("solicitud_iniciada", {
+      materia: materiaNombre,
+    });
+
     try {
+      // Petición al backend para registrar la solicitud
       const respuesta = await apiRequest(`/sesiones/${sesionId}/solicitar`, { method: "POST" });
+
+      // Diapositiva 11/13: Paso final del embudo de solicitud (evento de éxito)
+      track("solicitud_enviada", {
+        materia: materiaNombre,
+      });
+
       setMensaje(respuesta.mensaje || "Solicitud enviada correctamente.");
     } catch (err) {
+      // Diapositiva 11/13: Registro de error que frena la tarea
+      track("solicitud_fallida", {
+        motivo: "error_servidor",
+      });
       setErrorInscripcion(err.message);
     } finally {
       setInscribiendo(null);
       setActualizacion((valor) => valor + 1);
+    }
+  }
+
+  // TAREA 9 (PARTE B): Abre el modal para que el organizador confirme la cancelación
+  function abrirModalCancelar(sesion) {
+    setModalCancelar(sesion); // Asigna la sesión seleccionada al estado
+    setMotivoCancelacion(""); // Limpia el motivo anterior
+    // Diapositiva 11/13: Evento de inicio del embudo de cancelación
+    track("cancelacion_sesion_iniciada", {
+      sesion_id: sesion.id,
+      materia: (sesion.materia || "general").toLowerCase(),
+    });
+  }
+
+  // TAREA 9 (PARTE B): Envía el motivo y procesa la cancelación formal en el backend
+  async function confirmarCancelacionSesion(e) {
+    e.preventDefault(); // Previene la recarga default del formulario HTML
+    if (!modalCancelar) return; // Salvaguarda si no hay sesión seleccionada
+
+    const motivoLimpio = motivoCancelacion.trim(); // Limpia espacios en blanco iniciales y finales
+    if (motivoLimpio.length < 5) { // Regla obligatoria: motivo con al menos 5 caracteres
+      setErrorInscripcion("El motivo de cancelación debe tener al menos 5 caracteres.");
+      // Diapositiva 11/13: Registro del error de validación
+      track("cancelacion_fallida", {
+        sesion_id: modalCancelar.id,
+        motivo: "motivo_muy_corto",
+      });
+      return;
+    }
+
+    setCancelando(true); // Bloquea el botón e indica procesamiento
+    setErrorInscripcion(""); // Limpia mensajes de error previos
+    setMensaje(""); // Limpia notificaciones previas
+
+    try {
+      // Pantalla: al tocar «Confirmar cancelación» (Diapositiva 7/13)
+      const respuesta = await apiRequest(`/sesiones/${modalCancelar.id}/cancelar`, {
+        method: "POST",
+        body: JSON.stringify({ motivo: motivoLimpio }),
+      });
+
+      // Solo llega aquí si se guardó con éxito en el backend (Diapositiva 7/13)
+      track("sesion_cancelada", {
+        sesion_id: modalCancelar.id,
+        materia: (modalCancelar.materia || "general").toLowerCase(),
+      });
+
+      setMensaje(respuesta.mensaje || "Sesión cancelada exitosamente.");
+      setModalCancelar(null); // Cierra el modal de confirmación
+      setMotivoCancelacion(""); // Reinicia el campo de texto
+    } catch (err) {
+      // Diapositiva 11/13: Evento de error reportado por el servidor
+      track("cancelacion_fallida", {
+        sesion_id: modalCancelar.id,
+        motivo: "error_servidor",
+      });
+      setErrorInscripcion(err.message);
+    } finally {
+      setCancelando(false); // Restaura estado interactivo
+      setActualizacion((v) => v + 1); // Dispara la recarga de sesiones actualizadas
     }
   }
 
@@ -425,20 +518,29 @@ export default function SesionsPage() {
                     {/* Encabezado con insignias de rol y estado de la solicitud */}
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <span className="badge bg-secondary">{sesion.materia}</span>
-                      {esMio ? (
-                        <span className="badge bg-primary">👑 Organizador</span>
-                      ) : sesion.estado_solicitud === "pendiente_reconfirmacion" ? (
-                        // TAREA 7: Insignia de reconfirmación requerida tras reprogramación
-                        <span className="badge bg-warning text-dark">⚠️ Requiere reconfirmación</span>
-                      ) : sesion.estado_solicitud === "pendiente" ? (
-                        <span className="badge bg-warning text-dark">⏳ Solicitud pendiente</span>
-                      ) : sesion.estado_solicitud === "en_espera" ? (
-                        <span className="badge bg-info text-dark">⏳ En espera (#{sesion.posicion_espera || 1})</span>
-                      ) : sesion.estado_solicitud === "aceptada" ? (
-                        <span className="badge bg-success">✅ Confirmado</span>
-                      ) : sesion.estado_solicitud === "rechazada" ? (
-                        <span className="badge bg-danger">❌ Rechazada</span>
-                      ) : null}
+                      <div className="d-flex gap-1 align-items-center">
+                        {sesion.cancelada && (
+                          // TAREA 9: Indicador destacado si la sesión fue cancelada por el organizador
+                          <span className="badge bg-danger">🚫 Cancelada</span>
+                        )}
+                        {esMio ? (
+                          <span className="badge bg-primary">👑 Organizador</span>
+                        ) : sesion.estado_solicitud === "cancelada" ? (
+                          // TAREA 9: Estado del participante cuando la sesión fue cancelada
+                          <span className="badge bg-danger">🚫 Cancelada</span>
+                        ) : sesion.estado_solicitud === "pendiente_reconfirmacion" ? (
+                          // TAREA 7: Insignia de reconfirmación requerida tras reprogramación
+                          <span className="badge bg-warning text-dark">⚠️ Requiere reconfirmación</span>
+                        ) : sesion.estado_solicitud === "pendiente" ? (
+                          <span className="badge bg-warning text-dark">⏳ Solicitud pendiente</span>
+                        ) : sesion.estado_solicitud === "en_espera" ? (
+                          <span className="badge bg-info text-dark">⏳ En espera (#{sesion.posicion_espera || 1})</span>
+                        ) : sesion.estado_solicitud === "aceptada" ? (
+                          <span className="badge bg-success">✅ Confirmado</span>
+                        ) : sesion.estado_solicitud === "rechazada" ? (
+                          <span className="badge bg-danger">❌ Rechazada</span>
+                        ) : null}
+                      </div>
                     </div>
 
                     <h2 className="h5 fw-bold mb-2">{sesion.nombre}</h2>
@@ -481,6 +583,12 @@ export default function SesionsPage() {
                           📅 <strong>Reprogramada:</strong> "{sesion.motivo_reprogramacion}"
                         </li>
                       )}
+                      {/* TAREA 9: Indicador visible si la sesión fue cancelada por el organizador */}
+                      {sesion.cancelada && (
+                        <li className="mt-2 p-2 bg-danger-subtle text-danger rounded small border border-danger-subtle">
+                          🚫 <strong>Sesión cancelada:</strong> "{sesion.motivo_cancelacion || 'Por disposición del organizador'}"
+                        </li>
+                      )}
                     </ul>
 
                     {/* Mensaje de motivo cuando la sesión no está disponible */}
@@ -515,7 +623,7 @@ export default function SesionsPage() {
                         </button>
 
                         {/* TAREA 7: Botón para Reprogramar sesión */}
-                        {!sesion.es_pasada && (
+                        {!sesion.es_pasada && !sesion.cancelada && (
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-info w-100 mt-2"
@@ -527,15 +635,29 @@ export default function SesionsPage() {
                           </button>
                         )}
 
+                        {/* TAREA 9: Botón para Cancelar sesión formalmente por el organizador */}
+                        {sesion.puede_cancelar && (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger w-100 mt-2 fw-semibold"
+                            onClick={() => abrirModalCancelar(sesion)}
+                            title="Cancelar definitivamente esta sesión de estudio con motivo obligatorio"
+                          >
+                            🚫 Cancelar sesión
+                          </button>
+                        )}
+
                         {/* TAREA 8: Control de asistencia y resolución de justificaciones para el organizador */}
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-success w-100 mt-2 fw-semibold"
-                          onClick={() => setModalAsistencia({ id: sesion.id, nombre: sesion.nombre })}
-                          title="Gestionar lista de presentes/ausentes y evaluar justificaciones"
-                        >
-                          📋 Control de asistencia y justificaciones
-                        </button>
+                        {!sesion.cancelada && (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-success w-100 mt-2 fw-semibold"
+                            onClick={() => setModalAsistencia({ id: sesion.id, nombre: sesion.nombre })}
+                            title="Gestionar lista de presentes/ausentes y evaluar justificaciones"
+                          >
+                            📋 Control de asistencia y justificaciones
+                          </button>
+                        )}
 
                         {/* Contenido desplegable con la lista de solicitudes de esta sesión */}
                         {estaAbierto && (
@@ -601,7 +723,20 @@ export default function SesionsPage() {
                     ) : (
                       /* ROL ESTUDIANTE: Acciones dinámicas */
                       <div className="mt-auto pt-2 border-top">
-                        {sesion.estado_solicitud === "pendiente_reconfirmacion" ? (
+                        {sesion.cancelada || sesion.estado_solicitud === "cancelada" ? (
+                          // TAREA 9 (PARTE B): Un participante ve el motivo y no puede volver a solicitar (Diapositiva 12/13)
+                          <div className="d-flex flex-column gap-2">
+                            <span className="badge bg-danger py-2">
+                              🚫 Sesión cancelada por el organizador
+                            </span>
+                            <div className="small text-danger bg-light p-2 rounded border border-danger-subtle">
+                              <strong>Motivo oficial:</strong> "{sesion.motivo_cancelacion || 'Por fuerza mayor o reprogramación'}"
+                            </div>
+                            <button className="btn btn-secondary w-100" disabled>
+                              🚫 No se admiten nuevas solicitudes
+                            </button>
+                          </div>
+                        ) : sesion.estado_solicitud === "pendiente_reconfirmacion" ? (
                           // TAREA 7: El estudiante debe reconfirmar o retirarse tras reprogramación
                           <div className="d-flex flex-column gap-2">
                             <span className="badge bg-warning text-dark py-2">
@@ -817,6 +952,85 @@ export default function SesionsPage() {
             setActualizacion((v) => v + 1);
           }}
         />
+      )}
+
+      {/* --- TAREA 9 (PARTE B): Modal de Cancelación de Sesión para el Organizador --- */}
+      {modalCancelar && (
+        <div
+          className="modal show d-block"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1060 }}
+          tabIndex="-1"
+          role="dialog"
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content shadow border-0" style={{ borderRadius: "14px" }}>
+              <div className="modal-header bg-danger text-white">
+                <h5 className="modal-title fw-bold">🚫 Cancelar sesión de estudio</h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  aria-label="Cerrar"
+                  onClick={() => {
+                    setModalCancelar(null);
+                    setMotivoCancelacion("");
+                  }}
+                />
+              </div>
+              <form onSubmit={confirmarCancelacionSesion}>
+                <div className="modal-body p-4">
+                  <p className="mb-2">
+                    ¿Estás seguro de que deseas cancelar la sesión <strong>{modalCancelar.nombre}</strong>?
+                  </p>
+                  <div className="alert alert-warning py-2 small mb-3">
+                    ⚠️ <strong>Consecuencias de IHC (Diapositiva 12/13):</strong>
+                    <ul className="mb-0 ps-3 mt-1">
+                      <li>Los participantes aceptados, pendientes y en espera pasarán a <strong>cancelada</strong>.</li>
+                      <li>Todos ellos verán el motivo que ingreses a continuación.</li>
+                      <li>No se admitirán nuevas solicitudes ni registro de asistencia.</li>
+                      <li>Esta acción es definitiva y no se puede revertir.</li>
+                    </ul>
+                  </div>
+
+                  <div className="mb-3">
+                    <label htmlFor="motivo-cancelacion-input" className="form-label fw-semibold">
+                      Motivo obligatorio de cancelación:
+                    </label>
+                    <textarea
+                      id="motivo-cancelacion-input"
+                      className="form-control"
+                      rows="3"
+                      placeholder="Explica el motivo (ej. Problemas de fuerza mayor, enfermedad, etc.)"
+                      value={motivoCancelacion}
+                      onChange={(e) => setMotivoCancelacion(e.target.value)}
+                      required
+                      minLength={5}
+                    />
+                    <div className="form-text small">Mínimo 5 caracteres explicativos.</div>
+                  </div>
+                </div>
+                <div className="modal-footer bg-light">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => {
+                      setModalCancelar(null);
+                      setMotivoCancelacion("");
+                    }}
+                  >
+                    Volver sin cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-danger fw-semibold"
+                    disabled={cancelando || motivoCancelacion.trim().length < 5}
+                  >
+                    {cancelando ? "Cancelando sesión..." : "Confirmar cancelación"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
 
       <p className="text-center mt-4">

@@ -1,8 +1,9 @@
+import json
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.orm import aliased
 from sqlalchemy.exc import IntegrityError
-from app.modelos_db import HistorialCambioAsistencia, Inscripcion, SesionEstudio, Usuario
+from app.modelos_db import Evento, HistorialCambioAsistencia, Inscripcion, SesionEstudio, Usuario
 
 
 def guardar_usuario(db, nombre, email, password_hash):
@@ -65,6 +66,9 @@ def fecha_iso_utc(dt):
 
 
 def motivo_para_unirse(sesion, usuario_id, inscritos, ya_inscrito, hoy=None):
+    # TAREA 9: Bloqueo explícito si la sesión fue cancelada
+    if bool(getattr(sesion, "cancelada", False)):
+        return "No se puede solicitar unirse a una sesión que ha sido cancelada."
     if sesion.usuario_id == usuario_id:
         return "Eres el creador de esta sesión."
     if ya_inscrito:
@@ -110,6 +114,10 @@ def solicitar_unirse(db, sesion_id, usuario_id, hoy=None, permitir_espera=True):
     if not sesion.inscripciones_abiertas:
         raise ValueError("Las inscripciones están cerradas.")
 
+    # TAREA 9: Regla: No se admiten solicitudes en una sesión cancelada por el organizador
+    if bool(getattr(sesion, "cancelada", False)):
+        raise ValueError("No se admiten nuevas solicitudes: la sesión ha sido cancelada por el organizador.")
+
     # Paso 4: Regla: Permitir unirse si la sesión es HOY o en el futuro (sesion.fecha >= hoy)
     # Se rechaza si la sesión ya ocurrió en el pasado (sesion.fecha < hoy) o si ya fue concluida
     fecha_limite = (hoy or fecha_actual())
@@ -124,6 +132,9 @@ def solicitar_unirse(db, sesion_id, usuario_id, hoy=None, permitir_espera=True):
     ahora_utc = datetime.now(timezone.utc).replace(tzinfo=None)
 
     if inscripcion is not None:
+        # TAREA 9: Si la inscripción quedó cancelada por cancelación de sesión, no puede volver a solicitar
+        if inscripcion.estado == "cancelada":
+            raise ValueError("No puedes volver a solicitar unirte a una sesión que fue cancelada.")
         # Si ya tiene una solicitud pendiente de aprobación, no duplicar
         if inscripcion.estado == "pendiente":
             raise ValueError("Ya tienes una solicitud pendiente para esta sesión.")
@@ -583,6 +594,10 @@ def listar_mis_solicitudes(db, usuario_id):
             "estado_justificacion": inscripcion.estado_justificacion,
             "motivo_respuesta_justificacion": inscripcion.motivo_respuesta_justificacion,
             "fecha_respuesta_justificacion": fecha_iso_utc(inscripcion.fecha_respuesta_justificacion),
+            # TAREA 9: Consulta persistente de cancelación de sesión para el participante
+            "sesion_cancelada": bool(getattr(sesion, "cancelada", False)),
+            "motivo_cancelacion": getattr(sesion, "motivo_cancelacion", None),
+            "fecha_cancelacion": fecha_iso_utc(getattr(sesion, "fecha_cancelacion", None)),
         })
     return resultado
 
@@ -682,8 +697,17 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
             else:
                 posicion_espera = 1
 
+        # TAREA 9: Verificar si la sesión fue cancelada por el organizador
+        esta_cancelada = bool(getattr(sesion, "cancelada", False))
+        motivo_cancelacion = getattr(sesion, "motivo_cancelacion", None)
+        fecha_cancelacion = getattr(sesion, "fecha_cancelacion", None)
+
         # Mensaje explicativo según el estado de la solicitud para guiar al usuario en la UI
-        if estado_solicitud == "pendiente":
+        if esta_cancelada:
+            motivo = f"Sesión cancelada por el organizador. Motivo: '{motivo_cancelacion or 'Sin motivo informado'}'."
+        elif estado_solicitud == "cancelada":
+            motivo = f"Tu participación fue cancelada debido a la cancelación de la sesión. Motivo: '{motivo_cancelacion or 'Sin motivo'}'."
+        elif estado_solicitud == "pendiente":
             motivo = "Tu solicitud está pendiente de aprobación."
         elif estado_solicitud == "en_espera":
             motivo = f"Estás en la lista de espera (Lugar #{posicion_espera})."
@@ -704,10 +728,10 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
         esta_finalizada = bool(getattr(sesion, "finalizada", False))
 
         # Determina si el estudiante puede enviar una solicitud normal (hay cupos libres disponibles)
-        # REGLA: Los participantes pueden unirse incluso el mismo día de la sesión (sesion.fecha >= hoy)
-        # siempre que la sesión no haya sido dada por concluida
+        # REGLA TAREA 9: No se admiten nuevas solicitudes si la sesión está cancelada
         puede_solicitar = (
             not es_organizador
+            and not esta_cancelada
             and estado_solicitud is None
             and sesion.inscripciones_abiertas
             and not esta_finalizada
@@ -715,10 +739,11 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
             and cupos_libres > 0
         )
 
-        # TAREA 6: Determina si el estudiante puede unirse a la LISTA DE ESPERA (la sesión está al 100% llena)
-        # REGLA: Permitido incluso el mismo día programado si la sesión aún no ha concluido
+        # TAREA 6 & 9: Determina si el estudiante puede unirse a la LISTA DE ESPERA (sesión llena)
+        # Bloqueado si la sesión está cancelada
         puede_solicitar_espera = (
             not es_organizador
+            and not esta_cancelada
             and estado_solicitud is None
             and sesion.inscripciones_abiertas
             and not esta_finalizada
@@ -729,14 +754,24 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
         # TAREA 6 & 7: Determina si el estudiante puede salir / abandonar (liberando cupo o saliendo de la fila)
         puede_abandonar = (
             not es_organizador
+            and not esta_cancelada
             and estado_solicitud in ("aceptada", "en_espera", "pendiente", "pendiente_reconfirmacion")
         )
 
         # TAREA 7: Determina si el usuario puede reconfirmar su participación
-        puede_reconfirmar = (estado_solicitud == "pendiente_reconfirmacion")
+        puede_reconfirmar = (not esta_cancelada and estado_solicitud == "pendiente_reconfirmacion")
 
         # TAREA 7: REGLA 'Mientras haya reconfirmaciones pendientes, no se admite otra reprogramación'
-        puede_reprogramar = es_organizador and (reconfirmaciones_count == 0) and (not es_pasada)
+        puede_reprogramar = es_organizador and not esta_cancelada and (reconfirmaciones_count == 0) and (not es_pasada)
+
+        # TAREA 9: Determina si el organizador puede CANCELAR la sesión
+        # Reglas: Solo el organizador, antes de la fecha (sesion.fecha >= hoy), no cancelada previamente y no finalizada
+        puede_cancelar = (
+            es_organizador
+            and not esta_cancelada
+            and not esta_finalizada
+            and sesion.fecha >= hoy
+        )
 
         # Construcción del diccionario con todas las propiedades que consume el frontend React
         resultado.append({
@@ -747,9 +782,9 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
             "fecha": sesion.fecha,
             "cupo": sesion.cupo,
             "cupos_disponibles": cupos_libres,  # Descuenta únicamente aceptadas y en reconfirmación
-            "inscripciones_abiertas": sesion.inscripciones_abiertas,
+            "inscripciones_abiertas": sesion.inscripciones_abiertas and not esta_cancelada,
             "inscrito": inscrito,
-            "estado_solicitud": estado_solicitud,  # 'pendiente', 'aceptada', 'en_espera', 'pendiente_reconfirmacion', 'rechazada' o None
+            "estado_solicitud": estado_solicitud,  # 'pendiente', 'aceptada', 'en_espera', 'pendiente_reconfirmacion', 'rechazada', 'cancelada' o None
             "es_organizador": es_organizador,      # True si el usuario creó esta sesión
             "solicitudes_pendientes_count": pendientes_por_sesion.get(sesion.id, 0) if es_organizador else 0,
             "en_espera_count": en_espera_total,    # Total de personas en lista de espera
@@ -760,11 +795,15 @@ def buscar_sesiones(db, usuario_id, nombre="", materia="", modalidad="",
             "puede_abandonar": puede_abandonar,                # True si puede salir / liberar cupo
             "puede_reconfirmar": puede_reconfirmar,            # True si tiene reconfirmación pendiente
             "puede_reprogramar": puede_reprogramar,            # True si el organizador puede reprogramar
+            "puede_cancelar": puede_cancelar,                  # True si el organizador puede cancelar (Tarea 9)
+            "cancelada": esta_cancelada,                       # True si la sesión fue suspendida/cancelada (Tarea 9)
+            "motivo_cancelacion": motivo_cancelacion,          # Explicación oficial del organizador (Tarea 9)
+            "fecha_cancelacion": fecha_cancelacion.isoformat() if fecha_cancelacion else None,
             "reconfirmaciones_pendientes_count": reconfirmaciones_count, # Total en reconfirmación
             "motivo_reprogramacion": getattr(sesion, "motivo_reprogramacion", None),
             "es_pasada": es_pasada,                            # True si la fecha ya pasó (Feedback Clase 19)
             "finalizada": bool(getattr(sesion, "finalizada", False)), # True si la sesión fue terminada (Tarea 8)
-            "puede_registrar_asistencia": es_organizador and (es_pasada or bool(getattr(sesion, "finalizada", False))), # Control de asistencia para organizador (Tarea 8)
+            "puede_registrar_asistencia": es_organizador and not esta_cancelada and (es_pasada or bool(getattr(sesion, "finalizada", False))), # Control de asistencia bloqueado si está cancelada (Tarea 9)
             "mi_asistencia": mis_inscripciones_objs.get(sesion.id).asistencia if mis_inscripciones_objs.get(sesion.id) else None, # Resultado de asistencia (Tarea 8)
             "mi_estado_justificacion": mis_inscripciones_objs.get(sesion.id).estado_justificacion if mis_inscripciones_objs.get(sesion.id) else None,
             "mi_justificacion": mis_inscripciones_objs.get(sesion.id).justificacion if mis_inscripciones_objs.get(sesion.id) else None,
@@ -1008,6 +1047,10 @@ def registrar_asistencia_batch(db, sesion_id, organizador_id, asistencias):
     if sesion.usuario_id != organizador_id:
         raise PermissionError("Solo el organizador de la sesión tiene permisos para registrar o modificar la asistencia.")
 
+    # TAREA 9: En una sesión cancelada no se admite registro de asistencia
+    if bool(getattr(sesion, "cancelada", False)):
+        raise ValueError("No se puede registrar asistencia en una sesión que ha sido cancelada.")
+
     # Comprobar que la sesión esté terminada o darla por concluida
     hoy = fecha_actual()
     es_pasada = (sesion.fecha <= hoy)
@@ -1192,3 +1235,213 @@ def responder_justificacion(db, sesion_id, estudiante_id, organizador_id, decisi
         "estado_justificacion": nuevo_estado,
         "motivo": motivo_limpio,
     }
+
+
+# ==============================================================================
+# --- TAREA 9: REGLAS DE NEGOCIO PARA CANCELAR UNA SESIÓN DE ESTUDIO ---
+# ==============================================================================
+def cancelar_sesion_estudio(db, sesion_id: int, organizador_id: int, motivo: str):
+    """
+    TAREA 9 (PARTE B): El organizador cancela formalmente una sesión de estudio.
+    Reglas de la Diapositiva 12/13:
+    1. Solo el organizador creador tiene permisos para cancelar (HTTP 403 para usuarios ajenos).
+    2. Solo antes de la fecha (sesion.fecha >= hoy y no finalizada).
+    3. Motivo obligatorio provisto por el organizador (mínimo 5 caracteres).
+    4. Consecuencia: Confirmados, pendientes y en espera pasan a 'cancelada' y ven el motivo.
+    5. No se admiten nuevas solicitudes ni asistencia posterior.
+    """
+    # 1. Obtener la sesión y validar que exista en la base de datos
+    sesion = db.get(SesionEstudio, sesion_id)
+    if not sesion:
+        raise ValueError("La sesión de estudio no existe.")
+
+    # 2. REGLA DE SEGURIDAD: Solo el organizador creador puede cancelar esta sesión
+    if sesion.usuario_id != organizador_id:
+        raise PermissionError("Solo el organizador de la sesión tiene permisos para cancelarla.")
+
+    # 3. Comprobar que no esté previamente cancelada
+    if bool(getattr(sesion, "cancelada", False)):
+        raise ValueError("Esta sesión de estudio ya ha sido cancelada previamente.")
+
+    # 4. REGLA TEMPORAL: Solo antes de la fecha programada
+    hoy = fecha_actual()
+    if sesion.fecha < hoy or bool(getattr(sesion, "finalizada", False)):
+        raise ValueError("No se puede cancelar una sesión que ya ha concluido o cuya fecha ya ha pasado.")
+
+    # 5. REGLA DE MOTIVO OBLIGATORIO: Mínimo 5 caracteres no vacíos
+    motivo_limpio = (motivo or "").strip()
+    if len(motivo_limpio) < 5:
+        raise ValueError("El motivo de cancelación es obligatorio y debe tener al menos 5 caracteres.")
+
+    # 6. Actualizar el estado de la sesión
+    ahora_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    sesion.cancelada = True
+    sesion.motivo_cancelacion = motivo_limpio
+    sesion.fecha_cancelacion = ahora_utc
+    sesion.inscripciones_abiertas = False  # Cierra inscripciones inmediatamente
+
+    # 7. TRANSICIÓN DE ESTADOS (Diapositiva 12/13):
+    # Confirmados ('aceptada'), pendientes ('pendiente') y en espera ('en_espera' / 'pendiente_reconfirmacion')
+    # pasan todos a estado 'cancelada' para ver el motivo oficial
+    inscripciones = db.scalars(
+        select(Inscripcion).where(Inscripcion.sesion_id == sesion_id)
+    ).all()
+
+    afectados = 0
+    for insc in inscripciones:
+        if insc.estado in ("aceptada", "pendiente", "en_espera", "pendiente_reconfirmacion"):
+            insc.estado = "cancelada"
+            afectados += 1
+
+    db.commit()
+
+    return {
+        "mensaje": f"Sesión cancelada exitosamente con motivo: '{motivo_limpio}'.",
+        "sesion_id": sesion.id,
+        "motivo": motivo_limpio,
+        "participantes_cancelados": afectados,
+    }
+
+
+# ==============================================================================
+# --- CLASE 21 / TAREA 9: REPOSITORIO DE ANALÍTICA DE INTERACCIÓN ---
+# ==============================================================================
+def registrar_evento_db(db, nombre_evento: str, props: dict, fecha_iso: str | None = None):
+    """
+    Guarda un evento en la tabla 'eventos' de la base de datos de la aplicación.
+    Cumple con la diapositiva 7/13:
+    - Evento: objeto_accion_en_pasado (ej. 'solicitud_iniciada', 'solicitud_enviada')
+    - Props: Diccionario mínimo serializado a JSON string
+    - Fecha: Marca temporal ISO 8601
+    """
+    # 1. Asegurar marca de tiempo ISO si no fue proporcionada por el cliente
+    if not fecha_iso:
+        fecha_iso = datetime.now(timezone.utc).isoformat()
+
+    # 2. Serializar props a cadena de texto JSON
+    props_str = json.dumps(props or {})
+
+    # 3. Crear y persistir la entidad Evento
+    nuevo_evento = Evento(
+        evento=nombre_evento.strip(),
+        props=props_str,
+        fecha=fecha_iso,
+    )
+    db.add(nuevo_evento)
+    db.commit()
+    db.refresh(nuevo_evento)
+
+    return {
+        "id": nuevo_evento.id,
+        "evento": nuevo_evento.evento,
+        "props": props,
+        "fecha": nuevo_evento.fecha,
+        "mensaje": "Evento registrado correctamente.",
+    }
+
+
+def obtener_resumen_analitica(db):
+    """
+    TAREA 9 (PARTE A): Analítica completa del producto con embudos de flujos principales.
+    Consulta obligatoria solicitada por el docente en la diapositiva 10/13 y 11/13:
+    SELECT evento, COUNT(*) FROM eventos GROUP BY evento;
+    
+    Calcula:
+    1. Embudo 1: Solicitud de sesión (solicitud_iniciada -> solicitud_enviada / solicitud_fallida)
+    2. Embudo 2: Creación de sesión (sesion_creacion_iniciada -> sesion_creada / sesion_creacion_fallida)
+    3. Embudo 3: Justificaciones (justificacion_iniciada -> justificacion_enviada / justificacion_fallida)
+    4. Embudo 4: Cancelaciones (cancelacion_sesion_iniciada -> sesion_cancelada / cancelacion_fallida)
+    5. Métricas de búsqueda y filtros sin resultados (busqueda_sin_resultados)
+    6. Identificación automática del paso con mayor caída (drop-off) para diseño IHC.
+    """
+    # 1. Ejecución de la consulta SQL canónica requerida por la diapositiva 10/13
+    consulta_sql = text("SELECT evento, COUNT(*) as cantidad FROM eventos GROUP BY evento")
+    filas = db.execute(consulta_sql).fetchall()
+
+    # 2. Mapear resultados a diccionario de conteos
+    conteos = {fila[0]: int(fila[1]) for fila in filas}
+
+    # Helper para calcular tasa de éxito y tasa de caída
+    def calcular_metricas_embudo(inicio_key, exito_key, error_key, nombre_flujo, pregunta_ihc):
+        inicios = conteos.get(inicio_key, 0)
+        exitos = conteos.get(exito_key, 0)
+        errores = conteos.get(error_key, 0)
+        tasa_exito = round((exitos / inicios) * 100) if inicios > 0 else 0
+        caida = max(0, 100 - tasa_exito) if inicios > 0 else 0
+        return {
+            "flujo": nombre_flujo,
+            "evento_inicio": inicio_key,
+            "inicios": inicios,
+            "evento_exito": exito_key,
+            "exitos": exitos,
+            "evento_error": error_key,
+            "errores": errores,
+            "tasa_exito": tasa_exito,
+            "tasa_caida": caida,
+            "pregunta": pregunta_ihc,
+        }
+
+    embudo_solicitud = calcular_metricas_embudo(
+        "solicitud_iniciada", "solicitud_enviada", "solicitud_fallida",
+        "Solicitud de ingreso a sesión",
+        "¿Qué porcentaje de estudiantes desiste al abrir el formulario de postulación?"
+    )
+
+    embudo_creacion = calcular_metricas_embudo(
+        "sesion_creacion_iniciada", "sesion_creada", "sesion_creacion_fallida",
+        "Creación de sesión por organizador",
+        "¿Cuántos organizadores abandonan la creación por formularios largos o errores de cupo?"
+    )
+
+    embudo_justificacion = calcular_metricas_embudo(
+        "justificacion_iniciada", "justificacion_enviada", "justificacion_fallida",
+        "Envío de justificación por estudiante ausente",
+        "¿Cuántos estudiantes ausentes completan la redacción de su justificación?"
+    )
+
+    embudo_cancelacion = calcular_metricas_embudo(
+        "cancelacion_sesion_iniciada", "sesion_cancelada", "cancelacion_fallida",
+        "Cancelación formal de sesión",
+        "¿Con qué frecuencia los organizadores confirman la cancelación tras ver el impacto?"
+    )
+
+    embudos = [embudo_solicitud, embudo_creacion, embudo_justificacion, embudo_cancelacion]
+
+    # Identificar el flujo con mayor caída porcentual (con al menos 1 inicio)
+    embudos_con_datos = [e for e in embudos if e["inicios"] > 0]
+    if embudos_con_datos:
+        flujo_mayor_caida = max(embudos_con_datos, key=lambda x: x["tasa_caida"])
+    else:
+        flujo_mayor_caida = embudo_solicitud
+
+    # 3. Obtener últimos eventos para desplegarlos en el panel
+    ultimos_query = select(Evento).order_by(Evento.id.desc()).limit(25)
+    eventos_db = db.scalars(ultimos_query).all()
+
+    ultimos_eventos = []
+    for ev in eventos_db:
+        try:
+            p = json.loads(ev.props) if ev.props else {}
+        except Exception:
+            p = {}
+        ultimos_eventos.append({
+            "id": ev.id,
+            "evento": ev.evento,
+            "props": p,
+            "fecha": ev.fecha,
+        })
+
+    return {
+        "conteo": {
+            "solicitud_iniciada": conteos.get("solicitud_iniciada", 0),
+            "solicitud_enviada": conteos.get("solicitud_enviada", 0),
+        },
+        "porcentaje_terminan": embudo_solicitud["tasa_exito"],
+        "embudos": embudos,
+        "flujo_mayor_caida": flujo_mayor_caida,
+        "busquedas_sin_resultados": conteos.get("busqueda_sin_resultados", 0),
+        "ultimos_eventos": ultimos_eventos,
+        "desglose_completo": conteos,
+    }
+
+

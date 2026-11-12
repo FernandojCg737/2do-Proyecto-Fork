@@ -11,7 +11,9 @@ from app.database import get_db
 from app.modelos_db import Inscripcion
 from app.models import (
     CambiarPassword,
+    CancelarSesion,
     EnviarJustificacion,
+    EventoCreate,
     ItemAsistencia,
     Login,
     RecuperarPassword,
@@ -25,6 +27,7 @@ from app.models import (
 
 from app.repositorio import (
     buscar_sesiones,
+    cancelar_sesion_estudio,
     cerrar_inscripciones as cerrar_inscripciones_db,
     finalizar_sesion,
     get_user_by_email,
@@ -35,9 +38,11 @@ from app.repositorio import (
     listar_solicitudes_organizador,
     obtener_asistencia_sesion,
     obtener_historial,
+    obtener_resumen_analitica,
     presentar_justificacion,
     reconfirmar_participacion,
     registrar_asistencia_batch,
+    registrar_evento_db,
     reprogramar_sesion,
     responder_justificacion,
     responder_solicitud,
@@ -581,3 +586,75 @@ def endpoint_responder_justificacion(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+# ==============================================================================
+# --- TAREA 9: CANCELAR UNA SESIÓN DE ESTUDIO (StudyMatch) ---
+# ==============================================================================
+@router.post("/sesiones/{sesion_id}/cancelar")
+def endpoint_cancelar_sesion(
+    sesion_id: int,
+    data: CancelarSesion,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 9 (PARTE B): El organizador cancela formalmente una sesión de estudio.
+    Reglas de la Diapositiva 12/13:
+    - Solo el organizador creador tiene permisos para cancelar (HTTP 403 para ajenos).
+    - Solo antes de la fecha programada (HTTP 400 si ya pasó o concluyó).
+    - Motivo obligatorio (mínimo 5 caracteres).
+    - Pasa los participantes de estados aceptada, pendiente y en_espera a 'cancelada'.
+    """
+    try:
+        return cancelar_sesion_estudio(
+            db=db,
+            sesion_id=sesion_id,
+            organizador_id=usuario.id,
+            motivo=data.motivo,
+        )
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+# ==============================================================================
+# --- CLASE 21: RUTAS DE ANALÍTICA DE INTERACCIÓN (TELEMETRÍA) ---
+# ==============================================================================
+@router.post("/eventos", status_code=status.HTTP_201_CREATED)
+def endpoint_registrar_evento(
+    data: EventoCreate,
+    db: Session = Depends(get_db),
+):
+    """
+    CLASE 21: Registra un evento en la tabla 'eventos' cumpliendo con la diapositiva 7/13.
+    - No requiere autenticación obligatoria para permitir telemetría anónima.
+    - Filtra datos personales (nombres, correos) protegiendo la privacidad.
+    """
+    try:
+        return registrar_evento_db(
+            db=db,
+            nombre_evento=data.evento,
+            props=data.props,
+            fecha_iso=data.fecha,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/eventos")
+@router.get("/analitica/metricas")
+def endpoint_obtener_analitica(
+    db: Session = Depends(get_db),
+):
+    """
+    CLASE 21: Consulta obligatoria del panel /analitica (diapositiva 10/13):
+    SELECT evento, COUNT(*) FROM eventos GROUP BY evento;
+    Retorna los conteos, el porcentaje de conversión y los últimos eventos.
+    """
+    try:
+        return obtener_resumen_analitica(db)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+

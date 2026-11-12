@@ -93,9 +93,33 @@ def inicializar_db():
 
         # TAREA 8: Migración de columna 'finalizada' en sesiones (indica conclusión de la sesión)
         if "finalizada" not in columnas:
-            tipo_bool = "BOOLEAN" if engine.dialect.name == "postgresql" else "BOOLEAN"
+            tipo_bool = "BOOLEAN"
+            val_default = "FALSE" if engine.dialect.name == "postgresql" else "0"
             conexion.execute(text(
-                f"ALTER TABLE sesiones ADD COLUMN finalizada {tipo_bool} NOT NULL DEFAULT 0"
+                f"ALTER TABLE sesiones ADD COLUMN finalizada {tipo_bool} NOT NULL DEFAULT {val_default}"
+            ))
+
+        # TAREA 9: Migración de columnas de cancelación en sesiones
+        # cancelada: booleano que indica si la sesión fue suspendida por su organizador
+        if "cancelada" not in columnas:
+            tipo_bool = "BOOLEAN"
+            val_default = "FALSE" if engine.dialect.name == "postgresql" else "0"
+            conexion.execute(text(
+                f"ALTER TABLE sesiones ADD COLUMN cancelada {tipo_bool} NOT NULL DEFAULT {val_default}"
+            ))
+
+        # motivo_cancelacion: texto obligatorio con la justificación del organizador
+        if "motivo_cancelacion" not in columnas:
+            tipo_str = "VARCHAR(1000)" if engine.dialect.name == "postgresql" else "TEXT"
+            conexion.execute(text(
+                f"ALTER TABLE sesiones ADD COLUMN motivo_cancelacion {tipo_str}"
+            ))
+
+        # fecha_cancelacion: marca temporal exacta de la cancelación
+        if "fecha_cancelacion" not in columnas:
+            tipo_dt = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
+            conexion.execute(text(
+                f"ALTER TABLE sesiones ADD COLUMN fecha_cancelacion {tipo_dt}"
             ))
 
         columnas_inscripciones = [

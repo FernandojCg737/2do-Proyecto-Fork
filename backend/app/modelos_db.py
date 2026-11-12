@@ -29,6 +29,12 @@ class SesionEstudio(Base):
     motivo_reprogramacion = Column(String, nullable=True)
     # TAREA 8: Indica si la sesión concluyó explícitamente para habilitar el registro de asistencia
     finalizada = Column(Boolean, nullable=False, default=False)
+    # TAREA 9: Indica si el organizador canceló formalmente la sesión de estudio
+    cancelada = Column(Boolean, nullable=False, default=False)
+    # TAREA 9: Motivo obligatorio provisto por el organizador al cancelar la sesión
+    motivo_cancelacion = Column(String, nullable=True)
+    # TAREA 9: Marca de tiempo exacta en que se canceló la sesión
+    fecha_cancelacion = Column(DateTime, nullable=True)
 
 class Inscripcion(Base):
     __tablename__ = "inscriprciones"
@@ -83,3 +89,23 @@ class HistorialCambioAsistencia(Base):
     estado_nuevo = Column(String, nullable=False)
     detalle = Column(String, nullable=True)      # Justificación del alumno o motivo del organizador
     fecha = Column(DateTime, nullable=False, default=fecha_inscripcion_actual)
+
+
+# ==============================================================================
+# --- CLASE 21: ANALÍTICA DE INTERACCIÓN (TELEMETRÍA Y EMBUDO DE CONVERSIÓN) ---
+# ==============================================================================
+# Modelo de base de datos para almacenar eventos de interacción.
+# Sigue la regla de privacidad de IHC: "Registren la acción, no a la persona".
+# No guarda emails, nombres de usuarios ni descripciones privadas.
+class Evento(Base):
+    __tablename__ = "eventos"
+
+    # Identificador único autoincremental de cada evento capturado
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    # Nombre del evento en snake_case (ej. 'solicitud_iniciada', 'solicitud_enviada')
+    evento = Column(String, nullable=False)
+    # Propiedades mínimas serializadas en formato JSON string (ej. '{"materia": "calculo"}')
+    props = Column(String, nullable=False, default="{}")
+    # Marca temporal ISO del suceso (ej. '2026-11-10T21:40:00Z')
+    fecha = Column(String, nullable=False)
+

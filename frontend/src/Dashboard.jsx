@@ -231,6 +231,11 @@ export default function Dashboard({ user }) {
                                     ⚠️ Requiere reconfirmación
                                   </span>
                                 )}
+                                {sol.estado === "cancelada" && (
+                                  <span className="badge bg-danger text-white px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                    🚫 Cancelada
+                                  </span>
+                                )}
                                 {sol.estado === "rechazada" && (
                                   <span className="badge bg-danger text-white px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
                                     ❌ Rechazada
@@ -238,6 +243,17 @@ export default function Dashboard({ user }) {
                                 )}
                               </div>
                             </div>
+
+                            {/* TAREA 9: Explicación visible para el participante si la sesión fue cancelada */}
+                            {(sol.estado === "cancelada" || sol.sesion_cancelada) && (
+                              <div className="alert alert-danger py-2 px-3 small my-2 border-danger rounded-3">
+                                <strong>🚫 Sesión cancelada por el organizador:</strong>
+                                <div className="mt-1">
+                                  {sol.motivo_cancelacion ? `Motivo: "${sol.motivo_cancelacion}"` : "La sesión fue suspendida definitivamente."}
+                                </div>
+                                <span className="text-secondary small fst-italic">Tu postulación quedó sin efecto y no admite nuevas solicitudes.</span>
+                              </div>
+                            )}
 
                             {sol.fecha_respuesta && (
                               <p className="small text-muted mb-2 fst-italic">
