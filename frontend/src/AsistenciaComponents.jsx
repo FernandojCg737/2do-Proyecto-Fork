@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Loading } from "./Components";
 import { apiRequest } from "./api";
+import { track } from "./analitica";
 
 // =============================================================================
 // --- TAREA 8: COMPONENTES DE ASISTENCIA, JUSTIFICACIONES Y AUDITORÍA ---
@@ -697,24 +698,38 @@ export function ModalJustificarAusencia({ sesionId, sesionNombre, onClose, onSuc
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
 
+  // TAREA 9 (PARTE A): Registra inicio del flujo de justificación en el embudo
+  useEffect(() => {
+    track("justificacion_iniciada", { sesion_id: sesionId });
+  }, [sesionId]);
+
   async function enviar(e) {
     e.preventDefault();
     const texto = justificacion.trim();
     if (texto.length < 5) {
       setError("La justificación debe tener al menos 5 caracteres explicativos.");
+      // TAREA 9: Registro de error de validación en el embudo
+      track("justificacion_fallida", { sesion_id: sesionId, motivo: "texto_muy_corto" });
       return;
     }
 
     setEnviando(true);
     setError("");
     try {
-      const res = await apiRequest(`/sesiones/${sesionId}/justificar`, {
+      // pantalla: al tocar «Enviar justificación» 1
+      const res = await apiRequest(`/sesiones/${sesionId}/justificar`, { // 2
         method: "POST",
         body: JSON.stringify({ justificacion: texto }),
       });
+
+      // solo llega aquí si se guardó con éxito (Diapositiva 7/13)
+      track("justificacion_enviada", { sesion_id: sesionId }); // 3
+
       if (onSuccess) onSuccess(res.mensaje);
       onClose();
     } catch (err) {
+      // Error que frena la tarea (Diapositiva 11/13)
+      track("justificacion_fallida", { sesion_id: sesionId, motivo: "error_servidor" });
       setError(err.message);
     } finally {
       setEnviando(false);

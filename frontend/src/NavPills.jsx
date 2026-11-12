@@ -55,6 +55,18 @@ export default function NavPills({ activeTab = "buscar" }) {
         >
           📋 Historial
         </Link>
+
+        {/* CLASE 21: Acceso al panel de telemetría y analítica de interacción */}
+        <Link
+          to="/analitica"
+          className={`btn btn-sm rounded-pill px-3 py-2 fw-semibold text-decoration-none transition ${
+            activeTab === "analitica"
+              ? "btn-success shadow-sm text-white"
+              : "btn-light text-secondary border-0"
+          }`}
+        >
+          📊 Analítica
+        </Link>
       </div>
     </nav>
   );

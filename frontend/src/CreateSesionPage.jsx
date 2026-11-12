@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, AuthCard, Input } from "./Components";
 import { Link } from "react-router-dom";
 import { apiRequest } from "./api";
+import { track } from "./analitica";
 
 export default function CreateSesionPage() {
   const [nombre, setNombre] = useState("");
@@ -14,16 +15,29 @@ export default function CreateSesionPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  // TAREA 9 (PARTE A): Registra inicio del flujo de creación en el embudo
+  useEffect(() => {
+    track("sesion_creacion_iniciada", { origen: "formulario_nueva_sesion" });
+  }, []);
+
   async function createNew(event) {
     event.preventDefault();
     setError("");
     setMessage("");
 
     try {
-      const data = await apiRequest("/guardar-nuevo", {
+      // pantalla: al tocar «Crear sesion» 1
+      const data = await apiRequest("/guardar-nuevo", { // 2
         method: "POST",
         body: JSON.stringify({ nombre, materia, modalidad, cupo, fecha, inscripciones }),
       });
+
+      // solo llega aquí si se guardó con éxito en el backend (Diapositiva 7/13)
+      track("sesion_creada", { // 3
+        materia: (materia || "general").toLowerCase(),
+        modalidad: modalidad.toLowerCase(),
+      });
+
       setMessage(data.mensaje);
       setNombre("");
       setMateria("");
@@ -31,6 +45,10 @@ export default function CreateSesionPage() {
       setCupo(1);
       setFecha("");
     } catch (err) {
+      // TAREA 9 (PARTE A): Error que frena la tarea (Diapositiva 11/13)
+      track("sesion_creacion_fallida", {
+        motivo: "error_validacion_o_servidor",
+      });
       setError(err.message);
     }
   }

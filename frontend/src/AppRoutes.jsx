@@ -6,6 +6,7 @@ import Home from "./Home";
 import Recover from "./Recover";
 import { Login, Register } from "./Auth";
 import HistorialPage from "./HistorialPage";
+import AnaliticaPage from "./AnaliticaPage";
 
 
 
@@ -32,6 +33,7 @@ export default function AppRoutes({user, checking, onLogin}) {
             <Route path="/login" element={<Login onLogin={onLogin} />} />
             <Route path="/register" element={<Register />} />
             <Route path="/recover" element={<Recover />} />
+            <Route path="/analitica" element={<AnaliticaPage user={user} />} />
 
             <Route 
                 element={<PrivateRoute user={user} checking={checking} />}
@@ -44,6 +46,7 @@ export default function AppRoutes({user, checking, onLogin}) {
                 <Route path="/sesions" element={<SesionsPage />} />
 
                 <Route path="/historial" element={<HistorialPage />} />
+                <Route path="/analitica" element={<AnaliticaPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
