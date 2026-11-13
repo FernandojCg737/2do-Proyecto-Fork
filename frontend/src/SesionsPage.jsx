@@ -552,8 +552,27 @@ export default function SesionsPage() {
                         <span className={sesion.cupos_disponibles === 0 ? "text-danger fw-bold" : "text-success fw-bold"}>
                           {sesion.cupos_disponibles}
                         </span> de {sesion.cupo}
-                        {sesion.cupos_disponibles === 0 && (
-                          <span className="badge bg-danger ms-2">Lleno</span>
+                        {/* ========================================================================================= */}
+                        {/* CORRECCIÓN ÉTICA IHC - CLASE 22 (Patrones Oscuros)                                       */}
+                        {/* Principio aplicado: 1. Honestidad - La interfaz dice la verdad.                          */}
+                        {/* Los cupos, plazos y estados salen de datos reales calculados en tiempo real.            */}
+                        {/* Se erradicó el cartel fijo '¡Últimos cupos!' que manipulaba con escasez artificial.    */}
+                        {/* ========================================================================================= */}
+                        {sesion.cupos_disponibles === 0 ? (
+                          // Si no hay cupos, informar con neutralidad sin culpabilizar al estudiante
+                          <span className="badge bg-secondary ms-2" data-testid="badge-cupo-real">
+                            Sin cupos (Lleno)
+                          </span>
+                        ) : sesion.cupos_disponibles === 1 && sesion.cupo > 1 ? (
+                          // Solo si matemáticamente queda 1 cupo real, mostrar advertencia puramente informativa y verídica
+                          <span className="badge bg-warning text-dark ms-2" data-testid="badge-cupo-real">
+                            ℹ️ Último cupo disponible (1 libre)
+                          </span>
+                        ) : (
+                          // Si hay 2 o más cupos disponibles, presentar disponibilidad con transparencia sin urgencia engañosa
+                          <span className="badge bg-light text-success border border-success ms-2" data-testid="badge-cupo-real">
+                            ✓ {sesion.cupos_disponibles} cupos libres
+                          </span>
                         )}
                         {sesion.en_espera_count > 0 && (
                           <div className="text-primary small mt-1 fw-semibold">
