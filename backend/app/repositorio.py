@@ -1445,3 +1445,264 @@ def obtener_resumen_analitica(db):
     }
 
 
+# ==============================================================================
+# --- TAREA 10: SALIDA HONESTA, PORTABILIDAD DE DATOS Y ELIMINACIÓN DE CUENTA ---
+# ==============================================================================
+
+def obtener_expediente_mis_datos(db, usuario_id: int) -> dict:
+    """
+    TAREA 10 (Parte 1): 'Mis datos: ver y descargar (JSON o CSV)'
+    Recopila en un único expediente estructurado y transparente toda la
+    información almacenada en la plataforma asociada al estudiante autenticado.
+    Cumple con el principio ético de portabilidad de datos sin obstáculos.
+    """
+    # 1. Obtener la entidad Usuario desde la base de datos
+    usuario = db.get(Usuario, usuario_id)
+    if not usuario:
+        raise ValueError("El usuario no existe en la base de datos.")
+
+    # 2. Consultar todas las sesiones donde este usuario es el organizador
+    query_organizadas = select(SesionEstudio).where(SesionEstudio.usuario_id == usuario_id).order_by(SesionEstudio.id.desc())
+    sesiones_db = db.scalars(query_organizadas).all()
+
+    sesiones_organizadas = []
+    for s in sesiones_db:
+        # Contar total de participantes inscritos formalmente
+        total_part = db.scalar(
+            select(func.count()).select_from(Inscripcion).where(Inscripcion.sesion_id == s.id)
+        ) or 0
+        sesiones_organizadas.append({
+            "id": s.id,
+            "nombre": s.nombre,
+            "materia": s.materia,
+            "fecha": str(s.fecha),
+            "modalidad": s.modalidad,
+            "cupo": s.cupo,
+            "inscripciones_abiertas": s.inscripciones_abiertas,
+            "finalizada": bool(getattr(s, "finalizada", False)),
+            "cancelada": bool(getattr(s, "cancelada", False)),
+            "motivo_cancelacion": getattr(s, "motivo_cancelacion", None),
+            "total_participantes": total_part,
+        })
+
+    # 3. Consultar todas las sesiones donde el usuario es participante (postulaciones e inscripciones)
+    query_inscripciones = (
+        select(Inscripcion, SesionEstudio)
+        .join(SesionEstudio, Inscripcion.sesion_id == SesionEstudio.id)
+        .where(Inscripcion.usuario_id == usuario_id)
+        .order_by(Inscripcion.sesion_id.desc())
+    )
+    inscripciones_db = db.execute(query_inscripciones).all()
+
+    mis_inscripciones = []
+    asistencias_presentes = 0
+    for insc, ses in inscripciones_db:
+        if insc.asistencia == "presente":
+            asistencias_presentes += 1
+
+        mis_inscripciones.append({
+            "sesion_id": ses.id,
+            "sesion_nombre": ses.nombre,
+            "materia": ses.materia,
+            "fecha_sesion": str(ses.fecha),
+            "modalidad": ses.modalidad,
+            "estado_solicitud": insc.estado,
+            "fecha_inscripcion": str(insc.fecha_inscripcion) if insc.fecha_inscripcion else None,
+            "asistencia": insc.asistencia,
+            "justificacion": insc.justificacion,
+            "estado_justificacion": insc.estado_justificacion,
+        })
+
+    # 4. Estructurar el expediente completo para visualización y descarga
+    return {
+        "perfil": {
+            "id": usuario.id,
+            "nombre": usuario.nombre,
+            "email": usuario.email,
+            "activo": bool(getattr(usuario, "activo", True)),
+            "fecha_eliminacion": str(getattr(usuario, "fecha_eliminacion", None)) if getattr(usuario, "fecha_eliminacion", None) else None,
+        },
+        "estadisticas": {
+            "total_sesiones_organizadas": len(sesiones_organizadas),
+            "total_solicitudes_e_inscripciones": len(mis_inscripciones),
+            "total_asistencias_confirmadas": asistencias_presentes,
+        },
+        "sesiones_organizadas": sesiones_organizadas,
+        "solicitudes_e_inscripciones": mis_inscripciones,
+    }
+
+
+def exportar_mis_datos_csv(expediente: dict) -> str:
+    """
+    TAREA 10 (Parte 1): Genera una representación en formato CSV plano
+    a partir del expediente de datos del usuario, asegurando portabilidad
+    en hojas de cálculo estándar (Excel, Google Sheets).
+    """
+    import io
+    import csv
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # 1. Sección de Perfil del Usuario
+    writer.writerow(["=== PERFIL DE USUARIO ==="])
+    writer.writerow(["ID", "Nombre", "Email", "Estado Cuenta"])
+    p = expediente.get("perfil", {})
+    writer.writerow([p.get("id"), p.get("nombre"), p.get("email"), "Activo" if p.get("activo") else "Inactivo"])
+    writer.writerow([])
+
+    # 2. Sección de Estadísticas Globales
+    writer.writerow(["=== RESUMEN DE ACTIVIDAD ==="])
+    est = expediente.get("estadisticas", {})
+    writer.writerow(["Metrica", "Cantidad"])
+    writer.writerow(["Sesiones Organizadas", est.get("total_sesiones_organizadas", 0)])
+    writer.writerow(["Solicitudes e Inscripciones", est.get("total_solicitudes_e_inscripciones", 0)])
+    writer.writerow(["Asistencias Confirmadas", est.get("total_asistencias_confirmadas", 0)])
+    writer.writerow([])
+
+    # 3. Sección de Sesiones Organizadas
+    writer.writerow(["=== SESIONES ORGANIZADAS ==="])
+    writer.writerow(["ID", "Nombre", "Materia", "Fecha", "Modalidad", "Cupo", "Estado"])
+    for s in expediente.get("sesiones_organizadas", []):
+        estado_txt = "Cancelada" if s.get("cancelada") else ("Finalizada" if s.get("finalizada") else "Activa")
+        writer.writerow([s.get("id"), s.get("nombre"), s.get("materia"), s.get("fecha"), s.get("modalidad"), s.get("cupo"), estado_txt])
+    writer.writerow([])
+
+    # 4. Sección de Inscripciones y Solicitudes
+    writer.writerow(["=== MIS INSCRIPCIONES Y SOLICITUDES ==="])
+    writer.writerow(["Sesion ID", "Nombre Sesion", "Materia", "Fecha Sesion", "Modalidad", "Estado Solicitud", "Asistencia"])
+    for ins in expediente.get("solicitudes_e_inscripciones", []):
+        writer.writerow([
+            ins.get("sesion_id"),
+            ins.get("sesion_nombre"),
+            ins.get("materia"),
+            ins.get("fecha_sesion"),
+            ins.get("modalidad"),
+            ins.get("estado_solicitud"),
+            ins.get("asistencia") or "No registrada",
+        ])
+
+    return output.getvalue()
+
+
+def eliminar_cuenta_usuario(db, usuario_id: int, password_confirmacion: str, motivo_cancelacion_sesiones: str | None = None) -> dict:
+    """
+    TAREA 10 (Partes 2 y 3): Salida Honesta y Regla Difícil de StudyMatch (Diapositiva 13/16).
+    Regla asignada:
+      'Las sesiones que organiza se cancelan y los participantes ven el motivo.
+       Sale de las listas de espera sin afectar el orden de los demás.'
+      'si la regla bloquea la eliminación, el mensaje dice por qué y qué hacer para poder eliminarla.'
+    """
+    from app.services import verificar_password
+
+    # 1. Obtener al usuario autenticado desde la base de datos
+    usuario = db.get(Usuario, usuario_id)
+    if not usuario:
+        raise ValueError("El usuario que intenta eliminar la cuenta no existe.")
+
+    # 2. Principio de Prevención de Errores (Nielsen #5): Verificar contraseña de confirmación
+    if not verificar_password(password_confirmacion, usuario.password_hash):
+        raise ValueError("La contraseña de confirmación es incorrecta. Ingrésala nuevamente para verificar tu identidad.")
+
+    # 3. REGLA DIFÍCIL DE STUDYMATCH: Evaluar sesiones organizadas activas
+    # Busca sesiones creadas por el usuario que no estén canceladas ni finalizadas
+    query_sesiones_activas = select(SesionEstudio).where(
+        SesionEstudio.usuario_id == usuario_id,
+        SesionEstudio.cancelada == False,
+    )
+    sesiones_activas = db.scalars(query_sesiones_activas).all()
+
+    # Contar si alguna de esas sesiones tiene participantes inscritos (aceptados, pendientes o en espera)
+    sesiones_con_participantes = []
+    total_participantes_afectados = 0
+    for s in sesiones_activas:
+        part_count = db.scalar(
+            select(func.count()).select_from(Inscripcion).where(
+                Inscripcion.sesion_id == s.id,
+                Inscripcion.estado.in_(["aceptada", "pendiente", "en_espera", "pendiente_reconfirmacion"])
+            )
+        ) or 0
+        if part_count > 0:
+            sesiones_con_participantes.append(s)
+            total_participantes_afectados += part_count
+
+    # 4. COMPROBACIÓN DE INTENTO BLOQUEADO (Diapositiva 12/16 y 13/16):
+    # Si el usuario tiene sesiones con participantes y no ingresó un motivo válido (mínimo 5 caracteres)
+    # la eliminación es bloqueada honestamente explicando el por qué y qué hacer.
+    motivo_limpio = (motivo_cancelacion_sesiones or "").strip()
+    if len(sesiones_con_participantes) > 0 and len(motivo_limpio) < 5:
+        return {
+            "bloqueado": True,
+            "por_que": f"Tienes {len(sesiones_con_participantes)} sesión(es) activa(s) como organizador con {total_participantes_afectados} estudiante(s) inscrito(s).",
+            "que_hacer": "Ingresa el motivo de cancelación obligatorio (mínimo 5 caracteres) que verán tus participantes para que sean notificados formalmente antes de eliminar tu cuenta.",
+            "sesiones_afectadas": len(sesiones_con_participantes),
+            "participantes_afectados": total_participantes_afectados,
+        }
+
+    # 5. EJECUTAR CANCELACIÓN EN CASCADA DE SUS SESIONES ORGANIZADAS:
+    # Las sesiones que organiza se cancelan y los participantes ven el motivo
+    ahora_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    motivo_final = motivo_limpio if motivo_limpio else "El organizador ha eliminado su cuenta de la plataforma."
+    sesiones_canceladas_count = 0
+
+    for s in sesiones_activas:
+        s.cancelada = True
+        s.motivo_cancelacion = motivo_final
+        s.fecha_cancelacion = ahora_utc
+        s.inscripciones_abiertas = False
+        sesiones_canceladas_count += 1
+
+        # Todas las solicitudes pasan a cancelada para que los participantes vean el motivo
+        inscriptions_s = db.scalars(select(Inscripcion).where(Inscripcion.sesion_id == s.id)).all()
+        for ins in inscriptions_s:
+            if ins.estado in ("aceptada", "pendiente", "en_espera", "pendiente_reconfirmacion"):
+                ins.estado = "cancelada"
+
+    # 6. SALIDA LIMPIA DE LISTAS DE ESPERA Y POSTULACIONES (Diapositiva 13/16):
+    # Sale de las listas de espera sin afectar el orden de los demás
+    query_mis_inscripciones = select(Inscripcion).where(Inscripcion.usuario_id == usuario_id)
+    mis_inscripciones = db.scalars(query_mis_inscripciones).all()
+    filas_espera_liberadas = 0
+
+    for ins in mis_inscripciones:
+        ses_id = ins.sesion_id
+        estado_previo = ins.estado
+
+        # Eliminar la inscripción del usuario que se retira
+        db.delete(ins)
+
+        # Si el usuario que se elimina estaba confirmado ('aceptada'), promover automáticamente al primero en espera
+        if estado_previo == "aceptada":
+            primer_espera = db.scalars(
+                select(Inscripcion)
+                .where(Inscripcion.sesion_id == ses_id, Inscripcion.estado == "en_espera")
+                .order_by(Inscripcion.fecha_inscripcion.asc(), Inscripcion.usuario_id.asc())
+            ).first()
+            if primer_espera:
+                primer_espera.estado = "aceptada"
+                primer_espera.fecha_respuesta = ahora_utc
+
+        if estado_previo == "en_espera":
+            filas_espera_liberadas += 1
+            # Nota: Al eliminarse este registro de la base de datos, las consultas FIFO
+            # basadas en fecha_inscripcion recompactan las posiciones relativas de los demás
+            # participantes sin modificar el orden de llegada de ninguno de ellos.
+
+    # 7. INHABILITACIÓN PERMANENTE DE LA CUENTA (Diapositiva 12/16):
+    # Después de eliminarla, esa cuenta no puede iniciar sesión
+    usuario.activo = False
+    usuario.fecha_eliminacion = ahora_utc
+
+    # 8. Confirmar transacción atómica en la base de datos
+    db.commit()
+
+    return {
+        "bloqueado": False,
+        "mensaje": "Tu cuenta ha sido eliminada permanentemente y de manera honesta.",
+        "sesiones_canceladas": sesiones_canceladas_count,
+        "participantes_notificados": total_participantes_afectados,
+        "filas_espera_liberadas": filas_espera_liberadas,
+    }
+
+
+

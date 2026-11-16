@@ -192,3 +192,28 @@ def inicializar_db():
             conexion.execute(text(
                 f"ALTER TABLE inscriprciones ADD COLUMN fecha_respuesta_justificacion {tipo_dt}"
             ))
+
+        # =====================================================================
+        # TAREA 10: Migración automática de columnas para Salida Honesta
+        # =====================================================================
+        # Inspecciona las columnas existentes en la tabla 'usuarios'
+        columnas_usuarios = [
+            columna["name"]
+            for columna in inspect(conexion).get_columns("usuarios")
+        ]
+
+        # 'activo': Si no existe en la base de datos previa, se añade con valor por defecto True/1
+        # para que todas las cuentas existentes continúen habilitadas normalmente.
+        if "activo" not in columnas_usuarios:
+            tipo_bool = "BOOLEAN"
+            val_default = "TRUE" if engine.dialect.name == "postgresql" else "1"
+            conexion.execute(text(
+                f"ALTER TABLE usuarios ADD COLUMN activo {tipo_bool} NOT NULL DEFAULT {val_default}"
+            ))
+
+        # 'fecha_eliminacion': Columna nullable que guarda la fecha UTC cuando la cuenta se dio de baja.
+        if "fecha_eliminacion" not in columnas_usuarios:
+            tipo_dt = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
+            conexion.execute(text(
+                f"ALTER TABLE usuarios ADD COLUMN fecha_eliminacion {tipo_dt}"
+            ))

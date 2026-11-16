@@ -102,4 +102,15 @@ def obtener_usuario_actual(
             detail="El usuario de esta sesión ya no existe",
         )
 
+    # =========================================================================
+    # TAREA 10: Inhabilitación total tras eliminación de cuenta (Diapositiva 12/16)
+    # =========================================================================
+    # Si la cuenta fue marcada como inactiva (eliminada), se revocan inmediatamente
+    # todos los tokens JWT emitidos previamente para impedir cualquier acción posterior.
+    if hasattr(usuario, "activo") and not usuario.activo:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Esta cuenta ha sido eliminada permanentemente y ya no tiene acceso a la plataforma.",
+        )
+
     return usuario

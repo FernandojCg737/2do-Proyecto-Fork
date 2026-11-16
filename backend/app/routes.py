@@ -2,7 +2,7 @@ import secrets
 from datetime import date
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -10,8 +10,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.modelos_db import Inscripcion
 from app.models import (
+    ActualizarPasswordPerfil,
     CambiarPassword,
     CancelarSesion,
+    EliminarCuenta,
     EnviarJustificacion,
     EventoCreate,
     ItemAsistencia,
@@ -29,6 +31,8 @@ from app.repositorio import (
     buscar_sesiones,
     cancelar_sesion_estudio,
     cerrar_inscripciones as cerrar_inscripciones_db,
+    eliminar_cuenta_usuario,
+    exportar_mis_datos_csv,
     finalizar_sesion,
     get_user_by_email,
     guardar_sesion,
@@ -37,6 +41,7 @@ from app.repositorio import (
     listar_sesiones,
     listar_solicitudes_organizador,
     obtener_asistencia_sesion,
+    obtener_expediente_mis_datos,
     obtener_historial,
     obtener_resumen_analitica,
     presentar_justificacion,
@@ -104,13 +109,26 @@ def registrar_usuario(data: Registro, db: Session = Depends(get_db)):
 
 @router.post("/login")
 def iniciar_sesion(data: Login, db: Session = Depends(get_db)):
+    # Normalizar dirección de correo para evitar discrepancias de mayúsculas
     email = normalizar_email(data.email)
+    # Buscar al usuario por correo en la base de datos
     usuario = get_user_by_email(db, email)
 
+    # Validar que el usuario exista y que la contraseña coincida con el hash
     if not usuario or not verificar_password(data.password, usuario.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Correo o contraseña incorrectos",
+        )
+
+    # =========================================================================
+    # TAREA 10: Inhabilitación total tras eliminación de cuenta (Diapositiva 12/16)
+    # 'Después de eliminarla, esa cuenta no puede iniciar sesión.'
+    # =========================================================================
+    if hasattr(usuario, "activo") and not usuario.activo:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Esta cuenta ha sido eliminada permanentemente y no puede iniciar sesión.",
         )
     
     return {
@@ -421,6 +439,31 @@ def cambiar_password(data: CambiarPassword, db: Session = Depends(get_db)):
     return {"mensaje": "Contraseña cambiada correctamente."}
 
 
+# Actualización directa de contraseña desde 'Mis datos' (usuario autenticado)
+@router.post("/mis-datos/cambiar-password")
+def cambiar_password_autenticado(
+    data: ActualizarPasswordPerfil,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
+):
+    # Verificar que la contraseña actual proporcionada coincida con la almacenada
+    if not verificar_password(data.password_actual, usuario.password_hash):
+        raise HTTPException(
+            status_code=400,
+            detail="La contraseña actual ingresada es incorrecta."
+        )
+
+    # Validar formato y longitud de la nueva contraseña
+    validar_password(data.nueva_password)
+
+    # Actualizar hash en base de datos
+    usuario.password_hash = hash_password(data.nueva_password)
+    db.commit()
+
+    return {"mensaje": "¡Tu contraseña ha sido actualizada exitosamente!"}
+
+
+
 @router.post("/guardar-nuevo")
 def crear_sesion(
     data: SesionDeEstudio,
@@ -657,4 +700,101 @@ def endpoint_obtener_analitica(
         return obtener_resumen_analitica(db)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+# ==============================================================================
+# --- TAREA 10: ENDPOINTS DE MIS DATOS, DESCARGA Y ELIMINACIÓN HONESTA ---
+# ==============================================================================
+
+@router.get("/mis-datos")
+def endpoint_ver_mis_datos(
+    db: Session = Depends(get_db),
+    usuario = Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 10 (Paso 1): 'Mis datos: ver y descargar (JSON o CSV)'
+    Permite al estudiante ver con transparencia total todos los datos que
+    la plataforma StudyMatch almacena sobre su perfil y actividad académica.
+    """
+    try:
+        return obtener_expediente_mis_datos(db, usuario.id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/mis-datos/descargar")
+def endpoint_descargar_mis_datos(
+    formato: Literal["json", "csv"] = "json",
+    db: Session = Depends(get_db),
+    usuario = Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 10 (Paso 1): Descarga de los datos en formatos abiertos (JSON o CSV).
+    Garantiza el derecho a la portabilidad de datos sin trabas técnicas.
+    """
+    try:
+        expediente = obtener_expediente_mis_datos(db, usuario.id)
+
+        if formato == "csv":
+            # Generar contenido en CSV estructurado
+            contenido_csv = exportar_mis_datos_csv(expediente)
+            return Response(
+                content=contenido_csv,
+                media_type="text/csv; charset=utf-8",
+                headers={
+                    "Content-Disposition": f"attachment; filename=studymatch_mis_datos_usuario_{usuario.id}.csv"
+                },
+            )
+        else:
+            # Generar contenido en JSON indentado y legible
+            import json
+            contenido_json = json.dumps(expediente, indent=2, ensure_ascii=False)
+            return Response(
+                content=contenido_json,
+                media_type="application/json; charset=utf-8",
+                headers={
+                    "Content-Disposition": f"attachment; filename=studymatch_mis_datos_usuario_{usuario.id}.json"
+                },
+            )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/cuenta/eliminar")
+def endpoint_eliminar_cuenta(
+    data: EliminarCuenta,
+    db: Session = Depends(get_db),
+    usuario = Depends(obtener_usuario_actual),
+):
+    """
+    TAREA 10 (Pasos 2 y 3): Eliminación honesta con la regla de la app (Diapositiva 12/16 y 13/16).
+    Regla asignada a StudyMatch:
+      'Las sesiones que organiza se cancelan y los participantes ven el motivo.
+       Sale de las listas de espera sin afectar el orden de los demás.'
+      'si la regla bloquea la eliminación, el mensaje dice por qué y qué hacer para poder eliminarla.'
+    """
+    try:
+        resultado = eliminar_cuenta_usuario(
+            db=db,
+            usuario_id=usuario.id,
+            password_confirmacion=data.password_confirmacion,
+            motivo_cancelacion_sesiones=data.motivo_cancelacion_sesiones,
+        )
+
+        # Si la regla de la aplicación bloqueó la eliminación (ej. sesiones activas sin motivo)
+        # se responde con HTTP 400 Bad Request detallando exactamente por qué y qué hacer
+        if resultado.get("bloqueado"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=resultado,
+            )
+
+        return resultado
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 

@@ -7,6 +7,7 @@ import Recover from "./Recover";
 import { Login, Register } from "./Auth";
 import HistorialPage from "./HistorialPage";
 import AnaliticaPage from "./AnaliticaPage";
+import MisDatosPage from "./MisDatosPage";
 
 
 
@@ -47,6 +48,8 @@ export default function AppRoutes({user, checking, onLogin}) {
 
                 <Route path="/historial" element={<HistorialPage />} />
                 <Route path="/analitica" element={<AnaliticaPage />} />
+                {/* TAREA 10: Ruta de Mis datos y salida honesta (eliminación de cuenta) */}
+                <Route path="/mis-datos" element={<MisDatosPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

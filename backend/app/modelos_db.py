@@ -6,13 +6,30 @@ def fecha_inscripcion_actual():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class Usuario(Base):
+    # Nombre de la tabla de usuarios en la base de datos relacional
     __tablename__ = "usuarios"
 
+    # Identificador único autonumérico del usuario en el sistema
     id = Column(Integer, primary_key=True)
+    # Nombre completo o alias del estudiante registrado
     nombre = Column(String, nullable=False)
+    # Dirección de correo electrónico única para autenticación
     email = Column(String, nullable=False, unique=True)
+    # Hash criptográfico de la contraseña (bcrypt) para almacenamiento seguro
     password_hash = Column(String, nullable=False)
+    # Código temporal para recuperación de contraseña olvidada
     reset_code = Column(String, nullable=False, default="")
+
+    # =========================================================================
+    # TAREA 10: Salida Honesta y Eliminación de Cuenta (Diapositiva 12/16)
+    # =========================================================================
+    # 'activo': Bandera booleana que indica si la cuenta está habilitada.
+    # Cuando el usuario elimina su cuenta, se marca en False para inhabilitar
+    # permanentemente el inicio de sesión sin romper la integridad referencial.
+    activo = Column(Boolean, nullable=False, default=True)
+    # 'fecha_eliminacion': Marca temporal exacta (UTC) de cuándo el usuario
+    # solicitó y confirmó la eliminación honesta de su cuenta.
+    fecha_eliminacion = Column(DateTime, nullable=True)
 
 class SesionEstudio(Base):
     __tablename__ = "sesiones"

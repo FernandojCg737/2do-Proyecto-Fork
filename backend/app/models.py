@@ -23,6 +23,12 @@ class CambiarPassword(BaseModel):
     nueva_password: str = Field(validation_alias=AliasChoices("nueva_password", "nuevo_password"))
 
 
+# Esquema para actualización de contraseña desde 'Mis datos' mientras el usuario está autenticado
+class ActualizarPasswordPerfil(BaseModel):
+    password_actual: str
+    nueva_password: str = Field(validation_alias=AliasChoices("nueva_password", "nuevo_password"))
+
+
 class SesionDeEstudio(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -164,4 +170,30 @@ class EventoCreate(BaseModel):
         campos_sensibles = {"email", "correo", "nombre", "usuario", "password", "descripcion", "monto", "token"}
         # Retorna solo las propiedades que no contengan datos sensibles
         return {k: v for k, v in valor.items() if str(k).lower() not in campos_sensibles}
+
+
+# ==============================================================================
+# --- TAREA 10: Esquema de Validación para Salida Honesta y Eliminación de Cuenta ---
+# ==============================================================================
+class EliminarCuenta(BaseModel):
+    """
+    Payload recibido cuando el usuario confirma la eliminación de su cuenta.
+    Aplica el principio de prevención de errores de Nielsen (#5):
+    - password_confirmacion: Reingreso de su contraseña para evitar borrados accidentales.
+    - motivo_cancelacion_sesiones: Obligatorio si el usuario organiza sesiones activas
+      con participantes inscritos (Regla de StudyMatch de la Diapositiva 13/16:
+      'Las sesiones que organiza se cancelan y los participantes ven el motivo').
+    """
+    # Contraseña del usuario para verificar su identidad antes de una acción destructiva
+    password_confirmacion: str = Field(min_length=1)
+    # Motivo que verán los participantes de las sesiones canceladas del organizador
+    motivo_cancelacion_sesiones: str | None = Field(default=None)
+
+    @field_validator("password_confirmacion")
+    @classmethod
+    def validar_password(cls, valor: str) -> str:
+        # Sanitizar contraseña ingresada
+        if not valor or not valor.strip():
+            raise ValueError("Debes ingresar tu contraseña para confirmar la eliminación.")
+        return valor
 
