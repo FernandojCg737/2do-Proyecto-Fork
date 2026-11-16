@@ -1,24 +1,335 @@
+/**
+ * ============================================================================
+ * PALETA OFICIAL: COOL SLATE & MODERN TECH RECTANGULAR BUTTONS (IHC)
+ * ============================================================================
+ * 
+ * Principios aplicados de Interacción Humano-Computador:
+ * 1. Estilo de Botones Modern Tech: Esquinas suaves rectangulares (border-radius: 8px),
+ *    eliminando el aspecto circular/burbuja para una interfaz limpia profesional.
+ * 2. Barra de Navegación Monolítica: Una sola fila horizontal fluida sin saltos de línea.
+ * 3. Prevención de desbordamiento de texto: white-space: nowrap en botones y
+ *    diseño adaptable de métricas en móvil y tablet.
+ * 4. Profundidad y contraste WCAG AAA: Fondo pizarra frío (#eaf0f6) con tarjetas
+ *    blancas (#ffffff) y texto de alto contraste (#0f172a).
+ */
+
+:root {
+  /* Paleta cromática principal */
+  --sm-primary: #4f46e5;         /* Índigo eléctrico moderno */
+  --sm-primary-hover: #4338ca;   /* Índigo oscuro para interacción */
+  --sm-primary-light: #e0e7ff;   /* Tinte azul suave */
+  --sm-primary-rgb: 79, 70, 229;
+
+  /* Colores semánticos */
+  --sm-success: #10b981;
+  --sm-success-rgb: 16, 185, 129;
+  --sm-warning: #f59e0b;
+  --sm-warning-rgb: 245, 158, 11;
+  --sm-danger: #ef4444;
+  --sm-danger-rgb: 239, 68, 68;
+  --sm-info: #0ea5e9;
+
+  /* Superficies Pizarra Fría */
+  --sm-bg: #eaf0f6;              /* Gris pizarra azulado limpio */
+  --sm-surface: #ffffff;         /* Blanco puro brillante para tarjetas */
+  --sm-text: #0f172a;            /* Azul pizarra profundo (Slate-900) */
+  --sm-text-muted: #64748b;      /* Gris azulado medio (Slate-500) */
+  --sm-border: #cbd5e1;          /* Borde nítido definido (Slate-300) */
+  --sm-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.07);
+  --sm-shadow-hover: 0 12px 28px -4px rgba(15, 23, 42, 0.12);
+
+  /* Sobrescribir variables de Bootstrap 5 */
+  --bs-primary: var(--sm-primary);
+  --bs-primary-rgb: var(--sm-primary-rgb);
+  --bs-body-bg: var(--sm-bg);
+  --bs-body-color: var(--sm-text);
+  --bs-border-color: var(--sm-border);
+}
+
+/* -------------------------------------------------------------------------- */
+/* 1. TIPOGRAFÍA Y ESTRUCTURA GLOBAL                                          */
+/* -------------------------------------------------------------------------- */
+html {
+  /* Desplazamiento suave para transiciones de teclado y anclas */
+  scroll-behavior: smooth;
+}
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 body {
-  background: #f5f7fb;
-  color: #212529;
+  background-color: var(--sm-bg) !important;
+  color: var(--sm-text) !important;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
 }
 
-.hero-card {
-  background: white;
+/* Encabezados con quiebre de palabra natural (no quiebra sílabas ni letras sueltas) */
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.025em;
+  color: #0f172a !important;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
+a {
+  color: var(--sm-primary);
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+
+a:hover {
+  color: var(--sm-primary-hover);
+}
+
+/* -------------------------------------------------------------------------- */
+/* 2. BARRA DE NAVEGACIÓN SUPERIOR (NAVBAR FLUIDA EN UNA SOLA FILA)           */
+/* -------------------------------------------------------------------------- */
+.navbar.bg-dark {
+  background: linear-gradient(135deg, #0b1329 0%, #1e293b 100%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 20px rgba(11, 19, 41, 0.25) !important;
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
+}
+
+.navbar .navbar-brand {
+  font-weight: 800 !important;
+  letter-spacing: -0.02em;
+  font-size: 1.25rem;
+  color: #ffffff !important;
+  white-space: nowrap;
+}
+
+/* Enlaces del navbar estilo pestañas compactas */
+.navbar .nav-link-btn {
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 0.4rem 0.75rem !important;
+  white-space: nowrap !important;
+  transition: all 0.18s ease;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 3. TARJETAS (CARDS) CON ELEVACIÓN MODERNA TECH                            */
+/* -------------------------------------------------------------------------- */
 .card {
-  border-radius: 14px;
+  background-color: var(--sm-surface) !important;
+  border: 1px solid var(--sm-border) !important;
+  border-radius: 12px !important; /* Esquinas modernas refinadas */
+  box-shadow: var(--sm-shadow) !important;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease;
+  word-wrap: break-word;
+  overflow: hidden;
 }
 
-.form-control {
-  min-height: 44px;
+.card:hover {
+  box-shadow: var(--sm-shadow-hover) !important;
+  border-color: #94a3b8 !important;
 }
 
+.auth-card,
+.card-header {
+  border-top-left-radius: 12px !important;
+  border-top-right-radius: 12px !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 4. BOTONES MODERNOS RECTANGULARES CON ESQUINAS SUAVES (NO CIRCULARES)     */
+/* -------------------------------------------------------------------------- */
 .btn {
-  min-height: 42px;
+  min-height: 40px !important;
+  border-radius: 8px !important; /* Estilo rectangular moderno (NO circular ni burbuja) */
+  font-weight: 600 !important;
+  font-size: 0.92rem;
+  letter-spacing: 0.15px;
+  padding: 0.5rem 1.15rem !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-.navbar-brand {
-  letter-spacing: 0.2px;
+/* En botones estándar mantenemos el texto en una línea para evitar partición */
+.btn:not(.btn-wrap):not(.text-wrap) {
+  white-space: nowrap;
+}
+
+/* En botones largos o de asistencia en móvil permitimos quiebre de texto natural */
+.btn.btn-wrap,
+.btn.text-wrap,
+.btn-asistencia {
+  white-space: normal !important;
+  word-break: break-word !important;
+  text-align: left !important;
+  line-height: 1.35 !important;
+}
+
+/* Botón primario con elevación suave */
+.btn-primary {
+  background-color: var(--sm-primary) !important;
+  border-color: var(--sm-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 3px 8px rgba(79, 70, 229, 0.25) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--sm-primary-hover) !important;
+  border-color: var(--sm-primary-hover) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35) !important;
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Botón secundario en estilo contorno tech */
+.btn-outline-secondary {
+  border: 1px solid var(--sm-border) !important;
+  color: var(--sm-text) !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+/* Botón de peligro / logout */
+.btn-outline-danger {
+  border-radius: 8px !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+  color: #ef4444 !important;
+  background-color: transparent !important;
+}
+
+.btn-outline-danger:hover {
+  background-color: #ef4444 !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+/* Botones pequeños */
+.btn-sm {
+  min-height: 34px !important;
+  padding: 0.35rem 0.85rem !important;
+  font-size: 0.86rem !important;
+  border-radius: 6px !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 5. CAMPOS DE ENTRADA (INPUTS & SELECTS CON ESQUINAS SUAVES)               */
+/* -------------------------------------------------------------------------- */
+.form-control,
+.form-select,
+input,
+textarea {
+  min-height: 44px !important;
+  border-radius: 8px !important; /* Consistente con el radio de los botones */
+  border: 1.5px solid var(--sm-border) !important;
+  background-color: #ffffff !important;
+  padding: 0.55rem 0.95rem !important;
+  font-size: 0.95rem !important;
+  font-family: inherit !important;
+  max-width: 100%;
+  /* Margen superior de seguridad para móvil: al desplegarse el teclado virtual,
+     el navegador deja 100px de separación hacia arriba para que el label y el contexto
+     no queden tapados por el encabezado o la parte superior */
+  scroll-margin-top: 100px !important;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--sm-primary) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18) !important;
+  outline: none !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 6. BADGES E INSIGNIAS (MODERN RECTANGULAR LABELS)                          */
+/* -------------------------------------------------------------------------- */
+.badge {
+  padding: 0.35em 0.7em !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important; /* Etiquetas modernas limpias */
+  font-size: 0.8rem !important;
+  letter-spacing: 0.1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.badge.bg-success, .text-bg-success {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0;
+}
+
+.badge.bg-warning, .text-bg-warning {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border: 1px solid #fde68a;
+}
+
+.badge.bg-danger, .text-bg-danger {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border: 1px solid #fecaca;
+}
+
+.badge.bg-primary, .text-bg-primary {
+  background-color: var(--sm-primary-light) !important;
+  color: var(--sm-primary) !important;
+  border: 1px solid #c7d2fe;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 7. ALERTAS Y RETROALIMENTACIÓN                                             */
+/* -------------------------------------------------------------------------- */
+.alert {
+  border-radius: 10px !important;
+  font-weight: 500 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  word-break: break-word;
+}
+
+.alert-success {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #065f46 !important;
+}
+
+.alert-danger {
+  background-color: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #991b1b !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 8. AJUSTES RESPONSIVOS EN MÓVIL (<= 576px)                                 */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 576px) {
+  .card-body {
+    padding: 1.15rem !important;
+  }
+
+  .btn {
+    min-height: 38px !important;
+    font-size: 0.88rem !important;
+    padding: 0.45rem 0.9rem !important;
+  }
 }

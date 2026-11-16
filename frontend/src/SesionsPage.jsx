@@ -389,12 +389,12 @@ export default function SesionsPage() {
       {/* CLASE 20: Navegación de secciones */}
       <NavPills activeTab="buscar" />
 
-      <div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="d-flex justify-content-between align-items-start align-items-sm-center flex-wrap gap-3 mb-4">
         <div>
           <h1 className="h2 mb-1">Sesiones de estudio</h1>
           <p className="text-muted mb-0">Explora sesiones disponibles o administra las solicitudes de las tuyas.</p>
         </div>
-        <Link to="/new-study" className="btn btn-primary">
+        <Link to="/new-study" className="btn btn-primary text-nowrap">
           + Crear nueva sesión
         </Link>
       </div>

@@ -74,18 +74,18 @@ export default function HistorialPage() {
       {/* CLASE 20: Navegación de secciones */}
       <NavPills activeTab="historial" />
 
-      <div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="d-flex justify-content-between align-items-start align-items-sm-center flex-wrap gap-3 mb-4">
         <div>
           <h1 className="h2 mb-1">Mi historial de sesiones</h1>
           <p className="text-secondary mb-0">
             Tus solicitudes e inscripciones con fecha registrada aparecen de la más reciente a la más antigua.
           </p>
         </div>
-        <div className="d-flex gap-2">
-          <Link to="/sesions" className="btn btn-primary">
-            Buscar sesiones
+        <div className="d-flex gap-2 flex-wrap">
+          <Link to="/sesions" className="btn btn-primary text-nowrap">
+            🔍 Buscar sesiones
           </Link>
-          <Link to="/dashboard" className="btn btn-outline-secondary">
+          <Link to="/dashboard" className="btn btn-outline-secondary text-nowrap">
             Volver al panel
           </Link>
         </div>
@@ -115,44 +115,62 @@ export default function HistorialPage() {
         </div>
       )}
 
-      {/* Listado cronológico de solicitudes con estados persistentes */}
+      {/* Listado cronológico de solicitudes con estados persistentes y Auto-Layout responsivo */}
       {!loading && !error && (
         <div className="d-grid gap-3">
           {historial.map((registro) => (
             <article className="card shadow-sm border" key={registro.sesion_id}>
-              <div className="card-body">
-                {/* --- TAREA 5: Insignia visual coloreada según el estado persistente --- */}
-                <div className="d-flex justify-content-between align-items-start mb-2">
-                  <h2 className="h5 fw-bold mb-0">{registro.nombre}</h2>
-                  {registro.estado === "aceptada" ? (
-                    // Verde si el organizador aprobó la solicitud
-                    <span className="badge bg-success">✅ Inscripción aceptada</span>
-                  ) : registro.estado === "pendiente" ? (
-                    // Amarillo si la solicitud aún espera respuesta
-                    <span className="badge bg-warning text-dark">⏳ Solicitud pendiente</span>
-                  ) : (
-                    // Rojo si el organizador rechazó la solicitud
-                    <span className="badge bg-danger">❌ Solicitud rechazada</span>
-                  )}
+              <div className="card-body p-3 p-md-4">
+                {/* Cabecera con Auto-Layout responsivo: Materia a la izquierda y Estado en la parte superior derecha */}
+                <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                  <span className="badge bg-secondary-subtle text-secondary small">
+                    📚 {registro.materia}
+                  </span>
+
+                  {/* Insignia visual de estado con Auto-Layout y tamaño adaptable */}
+                  <div className="flex-shrink-0">
+                    {registro.estado === "aceptada" ? (
+                      <span className="badge bg-success text-white px-3 py-1 fs-6 d-inline-flex align-items-center gap-1 shadow-sm">
+                        ✅ Inscripción aceptada
+                      </span>
+                    ) : registro.estado === "pendiente" ? (
+                      <span className="badge bg-warning text-dark px-3 py-1 fs-6 d-inline-flex align-items-center gap-1 shadow-sm">
+                        ⏳ Solicitud pendiente
+                      </span>
+                    ) : (
+                      <span className="badge bg-danger text-white px-3 py-1 fs-6 d-inline-flex align-items-center gap-1 shadow-sm">
+                        ❌ Solicitud rechazada
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <p className="mb-1">
-                  <strong>Materia:</strong> {registro.materia} &bull; <strong>Modalidad:</strong> {registro.modalidad}
-                </p>
+                {/* Título de la sesión a ancho completo: previene que se quiebre en líneas diminutas */}
+                <h2 className="h5 fw-bold mb-3 text-dark text-break">
+                  {registro.nombre}
+                </h2>
 
-                <p className="mb-1">
-                  <strong>Fecha de la sesión:</strong> {formatearFecha(registro.fecha_sesion)}
-                </p>
-
-                <p className="mb-1 text-muted small">
-                  <strong>Fecha de solicitud:</strong> {formatearFechaHora(registro.fecha_inscripcion)}
-                </p>
-
-                {/* Resultado textual legible */}
-                <p className="mb-2">
-                  <strong>Resultado:</strong>{" "}
-                  <span className="fw-semibold">{registro.resultado}</span>
-                </p>
+                {/* Caja estructurada de datos (Auto-Layout en rejilla responsiva) */}
+                <div className="bg-light rounded-3 p-3 mb-3 border border-light-subtle">
+                  <div className="row g-2 small">
+                    <div className="col-12 col-sm-6">
+                      <span className="text-secondary d-block fw-semibold">💻 Modalidad:</span>
+                      <span className="fw-semibold text-dark text-capitalize d-block">{registro.modalidad}</span>
+                    </div>
+                    <div className="col-12 col-sm-6">
+                      <span className="text-secondary d-block fw-semibold">📅 Fecha de la sesión:</span>
+                      <span className="fw-semibold text-dark d-block">{formatearFecha(registro.fecha_sesion)}</span>
+                    </div>
+                    <div className="col-12 col-sm-6">
+                      <span className="text-secondary d-block fw-semibold">🕒 Fecha de solicitud:</span>
+                      <span className="text-muted d-block">{formatearFechaHora(registro.fecha_inscripcion)}</span>
+                    </div>
+                    <div className="col-12 col-sm-6">
+                      <span className="text-secondary d-block fw-semibold">📋 Resultado:</span>
+                      <span className="fw-semibold text-dark d-block">{registro.resultado}</span>
+                    </div>
+                  </div>
+                </div>
 
                 {/* TAREA 8: Detalle interactivo de Asistencia y Justificación */}
                 {registro.estado === "aceptada" && (

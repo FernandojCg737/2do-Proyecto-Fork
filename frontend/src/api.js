@@ -1,7 +1,7 @@
 
 
 
-const API_URL = "http://127.0.0.1:8000";
+export const API_URL = "http://127.0.0.1:8000";
 export const TOKEN_KEY = "studymatch_token";
 
 
@@ -37,10 +37,20 @@ export async function apiRequest(endpoint, options = {}) {
 
   if (!response.ok) {
     const detail = data.detail;
-    const message = Array.isArray(detail)
-      ? detail.map((error) => `${error.loc.at(-1)}: ${error.msg}`).join(". ")
-      : detail;
-    throw new Error(message || "Ocurrió un error.");
+    let message = "";
+    if (typeof detail === "string") {
+      message = detail;
+    } else if (Array.isArray(detail)) {
+      message = detail.map((error) => `${error.loc.at(-1)}: ${error.msg}`).join(". ");
+    } else if (typeof detail === "object" && detail !== null) {
+      message = detail.que_hacer || detail.por_que || detail.mensaje || "Ocurrió un error.";
+    } else {
+      message = "Ocurrió un error.";
+    }
+
+    const err = new Error(message);
+    err.data = typeof detail === "object" ? detail : data;
+    throw err;
   }
 
   return data;

@@ -69,7 +69,7 @@ export default function AnaliticaPage() {
 
       {/* Encabezado con estilo de terminal / panel de desarrollo */}
       <div className="card shadow-sm border-0 mb-4 overflow-hidden" style={{ borderRadius: "14px" }}>
-        <div className="p-3 text-white d-flex justify-content-between align-items-center" style={{ backgroundColor: "#2d3748" }}>
+        <div className="p-3 text-white d-flex justify-content-between align-items-center flex-wrap gap-2" style={{ backgroundColor: "#2d3748" }}>
           <div>
             <span className="fw-mono text-warning me-2">/analitica</span>
             <span className="fw-semibold text-white">· StudyMatch</span>
@@ -77,7 +77,7 @@ export default function AnaliticaPage() {
           </div>
           <button
             type="button"
-            className="btn btn-sm btn-outline-light rounded-pill px-3"
+            className="btn btn-sm btn-outline-light rounded-2 px-3"
             onClick={cargarMetricas}
             disabled={cargando}
           >
@@ -134,11 +134,11 @@ export default function AnaliticaPage() {
           {/* TAREA 9: EMBUDOS DE CONVERSIÓN POR FLUJO PRINCIPAL (Diapositiva 11/13) */}
           {/* ================================================================= */}
           <div className="card border-0 shadow-sm p-4 bg-white mb-4" style={{ borderRadius: "12px" }}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
+            <div className="d-flex justify-content-between align-items-start align-items-sm-center flex-wrap gap-2 mb-3">
               <h2 className="h5 fw-bold text-dark mb-0">
                 📊 Embudos de Conversión por Flujo Principal
               </h2>
-              <span className="badge bg-secondary-subtle text-secondary small">
+              <span className="badge bg-secondary-subtle text-secondary small text-wrap text-start">
                 Que la app les diga dónde se traba la gente
               </span>
             </div>
@@ -147,7 +147,7 @@ export default function AnaliticaPage() {
               {embudos.map((emb, idx) => (
                 <div key={idx} className="col-12 col-md-6">
                   <div className="p-3 border rounded-3 bg-light h-100 d-flex flex-column">
-                    <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div className="d-flex justify-content-between align-items-start flex-wrap gap-1 mb-2">
                       <span className="fw-bold text-dark">{emb.flujo}</span>
                       <span className={`badge ${emb.tasa_exito >= 50 ? "bg-success" : "bg-warning text-dark"}`}>
                         {emb.tasa_exito}% éxito
@@ -177,10 +177,17 @@ export default function AnaliticaPage() {
                       />
                     </div>
 
-                    <div className="d-flex justify-content-between text-muted small mt-auto pt-2 border-top">
-                      <span>Inicios: <strong>{emb.inicios}</strong> ({emb.evento_inicio})</span>
-                      <span>Éxitos: <strong>{emb.exitos}</strong></span>
-                      <span className="text-danger">Caída: <strong>{emb.tasa_caida}%</strong></span>
+                    <div className="mt-auto pt-2 border-top">
+                      <div className="small text-muted mb-1 text-truncate" title={emb.evento_inicio}>
+                        <span>Paso: </span><code className="text-dark small">{emb.evento_inicio}</code>
+                      </div>
+                      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 small">
+                        <span className="text-secondary">Inicios: <strong className="text-dark">{emb.inicios}</strong></span>
+                        <span className="text-secondary">Éxitos: <strong className="text-success">{emb.exitos}</strong></span>
+                        <span className="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold">
+                          Caída: {emb.tasa_caida}%
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -245,7 +252,7 @@ export default function AnaliticaPage() {
                             materia: <span className="fw-semibold text-dark">{materia}</span> · {hora}
                           </div>
                         </div>
-                        <span className={`badge ${esError ? "bg-danger" : esExito ? "bg-success" : "bg-primary"} rounded-pill px-2 py-1 small`}>
+                        <span className={`badge ${esError ? "bg-danger" : esExito ? "bg-success" : "bg-primary"} rounded-2 px-2 py-1 small`}>
                           #{ev.id}
                         </span>
                       </div>

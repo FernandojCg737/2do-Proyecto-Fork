@@ -55,7 +55,7 @@ export function InsigniaAsistencia({
   if (asistencia === "presente") {
     return (
       <div className="d-inline-flex align-items-center gap-1">
-        <span className="badge bg-success px-2 py-1 fs-7 rounded-pill">
+        <span className="badge bg-success px-2 py-1 fs-7 rounded-2">
           ✅ Presente en la sesión
         </span>
       </div>
@@ -68,19 +68,19 @@ export function InsigniaAsistencia({
       <div className="d-flex flex-column gap-1 align-items-start">
         <div className="d-flex align-items-center gap-2 flex-wrap">
           {estadoJustificacion === "aceptada" ? (
-            <span className="badge bg-success px-2 py-1 fs-7 rounded-pill">
+            <span className="badge bg-success px-2 py-1 fs-7 rounded-2">
               ✅ Ausencia justificada
             </span>
           ) : estadoJustificacion === "rechazada" ? (
-            <span className="badge bg-danger px-2 py-1 fs-7 rounded-pill">
+            <span className="badge bg-danger px-2 py-1 fs-7 rounded-2">
               ❌ Justificación rechazada
             </span>
           ) : estadoJustificacion === "pendiente" ? (
-            <span className="badge bg-warning text-dark px-2 py-1 fs-7 rounded-pill">
+            <span className="badge bg-warning text-dark px-2 py-1 fs-7 rounded-2">
               ⏳ Justificación en revisión
             </span>
           ) : (
-            <span className="badge bg-danger px-2 py-1 fs-7 rounded-pill">
+            <span className="badge bg-danger px-2 py-1 fs-7 rounded-2">
               ❌ Registrado como ausente
             </span>
           )}
@@ -89,7 +89,7 @@ export function InsigniaAsistencia({
           {(!estadoJustificacion || estadoJustificacion === "rechazada") && onAbrirJustificar && (
             <button
               type="button"
-              className="btn btn-outline-warning btn-sm py-0 px-2 rounded-pill fw-semibold"
+              className="btn btn-outline-warning btn-sm py-0 px-2 rounded-2 fw-semibold"
               onClick={onAbrirJustificar}
               title="Presentar justificativo formal al organizador"
             >
@@ -115,7 +115,7 @@ export function InsigniaAsistencia({
 
   // Caso 3: Asistencia no registrada todavía
   return (
-    <span className="badge bg-secondary-subtle text-secondary px-2 py-1 fs-7 rounded-pill">
+    <span className="badge bg-secondary-subtle text-secondary px-2 py-1 fs-7 rounded-2">
       ⏳ Asistencia no registrada
     </span>
   );
@@ -398,15 +398,15 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
                               </div>
                               <div>
                                 {p.asistencia === "presente" ? (
-                                  <span className="badge bg-success px-3 py-2 fs-7 rounded-pill fw-semibold">
+                                  <span className="badge bg-success px-3 py-2 fs-7 rounded-2 fw-semibold">
                                     ✓ Presente
                                   </span>
                                 ) : p.asistencia === "ausente" ? (
-                                  <span className="badge bg-danger px-3 py-2 fs-7 rounded-pill fw-semibold">
+                                  <span className="badge bg-danger px-3 py-2 fs-7 rounded-2 fw-semibold">
                                     ✕ Ausente
                                   </span>
                                 ) : (
-                                  <span className="badge bg-secondary-subtle text-secondary px-3 py-2 fs-7 rounded-pill">
+                                  <span className="badge bg-secondary-subtle text-secondary px-3 py-2 fs-7 rounded-2">
                                     ⏳ Sin registrar
                                   </span>
                                 )}
@@ -422,7 +422,7 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
                           </span>
                           <button
                             type="button"
-                            className="btn btn-outline-primary btn-sm px-3 rounded-pill fw-semibold"
+                            className="btn btn-outline-primary btn-sm px-3 rounded-2 fw-semibold"
                             onClick={() => setModoEdicion(true)}
                           >
                             ✏️ Editar / Modificar asistencia
@@ -477,7 +477,7 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
                           {tieneAsistenciaRegistrada && (
                             <button
                               type="button"
-                              className="btn btn-outline-secondary btn-sm px-3 rounded-pill"
+                              className="btn btn-outline-secondary btn-sm px-3 rounded-2"
                               disabled={guardando}
                               onClick={() => {
                                 // Cancelar edición: restaurar valores guardados previamente
@@ -494,7 +494,7 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
                           )}
                           <button
                             type="submit"
-                            className="btn btn-primary btn-sm px-3 rounded-pill fw-semibold"
+                            className="btn btn-primary btn-sm px-3 rounded-2 fw-semibold"
                             disabled={guardando}
                           >
                             {guardando

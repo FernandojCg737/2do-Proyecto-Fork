@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useLocation } from "react-router-dom";
 import { Alert, Loading } from "./Components";
 import { apiRequest } from "./api";
 import NavPills from "./NavPills";
@@ -39,6 +39,8 @@ function formatearHora(fechaIso) {
 
 export default function Dashboard({ user }) {
   const [searchParams] = useSearchParams();
+  // Hook para acceder al estado de navegación (ej. mensajes de éxito tras crear una sesión)
+  const location = useLocation();
   // CLASE 20: Arquitectura de información - Pestaña activa según navegación
   const tabParam = searchParams.get("tab");
   const tabActiva = tabParam === "mis-sesiones" ? "mis-sesiones" : "solicitudes";
@@ -48,7 +50,8 @@ export default function Dashboard({ user }) {
   const [misSolicitudes, setMisSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [mensaje, setMensaje] = useState("");
+  // Inicializa el mensaje informativo con el estado transferido desde la navegación previa si existe
+  const [mensaje, setMensaje] = useState(location.state?.mensaje || "");
   const [procesando, setProcesando] = useState(null);
   const [actualizacion, setActualizacion] = useState(0);
 
@@ -139,10 +142,10 @@ export default function Dashboard({ user }) {
                 </p>
               </div>
               <div className="d-flex gap-2 flex-wrap">
-                <Link to="/sesions" className="btn btn-outline-primary btn-sm rounded-pill">
+                <Link to="/sesions" className="btn btn-outline-primary btn-sm">
                   🔍 Explorar sesiones
                 </Link>
-                <Link to="/new-study" className="btn btn-primary btn-sm rounded-pill">
+                <Link to="/new-study" className="btn btn-primary btn-sm">
                   + Crear sesión
                 </Link>
               </div>
@@ -175,7 +178,7 @@ export default function Dashboard({ user }) {
                       Consulta si ya aceptaron tu solicitud, si requieres reconfirmar o tu lugar en lista de espera.
                     </p>
                   </div>
-                  <span className="badge bg-primary rounded-pill px-3 py-2">
+                  <span className="badge bg-primary px-3 py-2">
                     {misSolicitudes.length} solicitud{misSolicitudes.length !== 1 ? "es" : ""}
                   </span>
                 </div>
@@ -184,7 +187,7 @@ export default function Dashboard({ user }) {
                     <div className="text-center py-5 text-muted bg-light rounded-4">
                       <p className="fs-5 mb-2">Aún no has enviado solicitudes para unirte a sesiones.</p>
                       <p className="small mb-3">Encuentra una materia que te interese y postula a un grupo.</p>
-                      <Link to="/sesions" className="btn btn-primary rounded-pill px-4">
+                      <Link to="/sesions" className="btn btn-primary px-4">
                         🔍 Buscar sesiones disponibles
                       </Link>
                     </div>
@@ -196,51 +199,75 @@ export default function Dashboard({ user }) {
                           className="card border border-light-subtle shadow-sm rounded-3 overflow-hidden"
                         >
                           <div className="card-body p-3 p-md-4">
-                            <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
-                              <div>
-                                <span className="badge bg-secondary-subtle text-secondary small mb-1">
-                                  {sol.materia}
-                                </span>
-                                <h3 className="h5 fw-bold mb-1 text-dark">
-                                  {sol.sesion_nombre}
-                                </h3>
-                                <p className="text-muted small mb-0">
-                                  Organizador: <strong>{sol.organizador_nombre}</strong> ({sol.organizador_email}) &bull; Fecha: {formatearFecha(sol.fecha_sesion)}
-                                </p>
-                              </div>
+                            {/* Cabecera responsiva de la solicitud: Materia e Insignia de Estado */}
+                            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                              <span className="badge bg-secondary-subtle text-secondary small">
+                                📚 {sol.materia}
+                              </span>
 
-                              {/* CLASE 20: Insignia de estado limpia según el diseño de Arquitectura */}
-                              <div className="text-end">
+                              {/* Insignia de estado limpia, visible y sin desbordamiento */}
+                              <div className="flex-shrink-0">
                                 {sol.estado === "aceptada" && (
-                                  <span className="badge bg-success text-white px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                  <span className="badge bg-success text-white px-3 py-1 fs-6 d-inline-flex align-items-center gap-1 shadow-sm">
                                     ✓ Aceptada
                                   </span>
                                 )}
                                 {sol.estado === "pendiente" && (
-                                  <span className="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                  <span className="badge bg-warning text-dark px-3 py-1 fs-6 d-inline-flex align-items-center gap-1 shadow-sm">
                                     🕒 Pendiente de respuesta
                                   </span>
                                 )}
                                 {sol.estado === "en_espera" && (
-                                  <span className="badge bg-info text-dark px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                  <span className="badge bg-info text-dark px-3 py-1 fs-6 d-inline-flex align-items-center gap-1 shadow-sm">
                                     ⏳ En lista de espera (Lugar #{sol.posicion || 1})
                                   </span>
                                 )}
                                 {sol.estado === "pendiente_reconfirmacion" && (
-                                  <span className="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                  <span className="badge bg-warning text-dark px-3 py-1 fs-6 d-inline-flex align-items-center gap-1 shadow-sm">
                                     ⚠️ Requiere reconfirmación
                                   </span>
                                 )}
                                 {sol.estado === "cancelada" && (
-                                  <span className="badge bg-danger text-white px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                  <span className="badge bg-danger text-white px-3 py-1 fs-6 d-inline-flex align-items-center gap-1 shadow-sm">
                                     🚫 Cancelada
                                   </span>
                                 )}
                                 {sol.estado === "rechazada" && (
-                                  <span className="badge bg-danger text-white px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                  <span className="badge bg-danger text-white px-3 py-1 fs-6 d-inline-flex align-items-center gap-1 shadow-sm">
                                     ❌ Rechazada
                                   </span>
                                 )}
+                              </div>
+                            </div>
+
+                            {/* Título de la sesión con quiebre de texto responsivo */}
+                            <h3 className="h5 fw-bold mb-2 text-dark text-break">
+                              {sol.sesion_nombre}
+                            </h3>
+
+                            {/* Caja de datos estructurados de la sesión (Organizador y Fecha sin recortes) */}
+                            <div className="bg-light rounded-3 p-3 mb-3 border border-light-subtle">
+                              <div className="row g-2 small">
+                                <div className="col-12 col-md-7">
+                                  <span className="text-secondary d-block fw-semibold">👤 Organizador:</span>
+                                  <span className="fw-bold text-dark text-break d-block">
+                                    {sol.organizador_nombre}
+                                  </span>
+                                  <span className="text-muted text-break small d-block">
+                                    {sol.organizador_email}
+                                  </span>
+                                </div>
+                                <div className="col-12 col-md-5">
+                                  <span className="text-secondary d-block fw-semibold">📅 Fecha de la sesión:</span>
+                                  <span className="fw-bold text-dark d-block">
+                                    {formatearFecha(sol.fecha_sesion)}
+                                  </span>
+                                  {sol.fecha_respuesta && (
+                                    <span className="text-muted small d-block fst-italic mt-1">
+                                      Respondida: {formatearHora(sol.fecha_respuesta)}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
 
@@ -253,12 +280,6 @@ export default function Dashboard({ user }) {
                                 </div>
                                 <span className="text-secondary small fst-italic">Tu postulación quedó sin efecto y no admite nuevas solicitudes.</span>
                               </div>
-                            )}
-
-                            {sol.fecha_respuesta && (
-                              <p className="small text-muted mb-2 fst-italic">
-                                Respondida: {formatearHora(sol.fecha_respuesta)}
-                              </p>
                             )}
 
                             {/* TAREA 8: Consulta de asistencia y justificación para el estudiante */}
@@ -284,16 +305,20 @@ export default function Dashboard({ user }) {
                               </div>
                             )}
 
-                            {/* Acciones de la solicitud */}
+                            {/* Acciones de la solicitud: 'Ver sesión' busca directamente en el catálogo */}
                             <div className="pt-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
-                              <Link to="/sesions" className="btn btn-outline-primary btn-sm rounded-pill px-3">
-                                Ver sesión
+                              <Link
+                                to={`/sesions?nombre=${encodeURIComponent(sol.sesion_nombre)}`}
+                                className="btn btn-outline-primary btn-sm px-3"
+                                title="Ver los detalles de esta sesión en el catálogo"
+                              >
+                                🔍 Ver sesión
                               </Link>
 
                               {["aceptada", "en_espera", "pendiente", "pendiente_reconfirmacion"].includes(sol.estado) && (
                                 <button
                                   type="button"
-                                  className="btn btn-outline-danger btn-sm rounded-pill px-3"
+                                  className="btn btn-outline-danger btn-sm px-3"
                                   disabled={procesando === `salir-${sol.sesion_id}`}
                                   onClick={() => salirDeSesion(sol.sesion_id)}
                                 >
@@ -330,7 +355,7 @@ export default function Dashboard({ user }) {
                       Gestiona las solicitudes de tus compañeros y la lista de espera de tus sesiones.
                     </p>
                   </div>
-                  <Link to="/new-study" className="btn btn-primary btn-sm rounded-pill px-3">
+                  <Link to="/new-study" className="btn btn-primary btn-sm px-3">
                     + Crear nueva sesión
                   </Link>
                 </div>
@@ -339,44 +364,50 @@ export default function Dashboard({ user }) {
                     <div className="text-center py-5 text-muted bg-light rounded-4">
                       <p className="fs-5 mb-2">Aún no has recibido solicitudes en tus sesiones.</p>
                       <p className="small mb-3">Crea una sesión para convocar estudiantes de tu carrera.</p>
-                      <Link to="/new-study" className="btn btn-primary rounded-pill px-4">
+                      <Link to="/new-study" className="btn btn-primary px-4">
                         + Crear sesión de estudio
                       </Link>
                     </div>
                   ) : (
                     <div className="d-flex flex-column gap-3">
                       {/* TAREA 8: Acceso rápido al Control de Asistencia para el Organizador */}
-                      <div className="card bg-primary-subtle border-0 rounded-3 p-3">
-                        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                          <div>
-                            <h3 className="h6 fw-bold mb-0 text-dark">
-                              📋 Control de Asistencia y Justificaciones
-                            </h3>
-                            <p className="text-secondary small mb-0">
-                              Gestiona el registro de presentes o ausentes y resuelve las justificaciones de tus sesiones.
-                            </p>
-                          </div>
-                          <div className="d-flex gap-2 flex-wrap">
-                            {Array.from(
-                              new Map(
-                                solicitudesOrganizador.map((s) => [
-                                  s.sesion_id,
-                                  { id: s.sesion_id, nombre: s.sesion_nombre },
-                                ])
-                              ).values()
-                            ).map((ses) => (
-                              <button
-                                key={ses.id}
-                                type="button"
-                                className="btn btn-primary btn-sm rounded-pill fw-semibold shadow-sm"
-                                onClick={() =>
-                                  setModalAsistencia({ id: ses.id, nombre: ses.nombre })
-                                }
-                              >
-                                📋 Tomar asistencia: {ses.nombre}
-                              </button>
-                            ))}
-                          </div>
+                      <div className="card bg-primary-subtle border-0 rounded-3 p-3 mb-2">
+                        <div className="mb-2">
+                          <h3 className="h6 fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                            <span>📋</span>
+                            <span>Control de Asistencia y Justificaciones</span>
+                          </h3>
+                          <p className="text-secondary small mb-0">
+                            Gestiona el registro de presentes o ausentes y resuelve las justificaciones de tus sesiones activas.
+                          </p>
+                        </div>
+                        {/* Botones de asistencia responsivos con wrap y soporte para nombres largos */}
+                        <div className="d-flex flex-column flex-sm-row flex-wrap gap-2 mt-2">
+                          {Array.from(
+                            new Map(
+                              solicitudesOrganizador.map((s) => [
+                                s.sesion_id,
+                                { id: s.sesion_id, nombre: s.sesion_nombre },
+                              ])
+                            ).values()
+                          ).map((ses) => (
+                            <button
+                              key={ses.id}
+                              type="button"
+                              className="btn btn-primary btn-sm btn-wrap fw-semibold shadow-sm text-start py-2 px-3 w-100 w-sm-auto"
+                              style={{ maxWidth: "100%" }}
+                              onClick={() =>
+                                setModalAsistencia({ id: ses.id, nombre: ses.nombre })
+                              }
+                            >
+                              <span className="d-inline-flex align-items-center gap-2">
+                                <span>📋</span>
+                                <span className="text-break">
+                                  Tomar asistencia: <strong>{ses.nombre}</strong>
+                                </span>
+                              </span>
+                            </button>
+                          ))}
                         </div>
                       </div>
 
@@ -392,32 +423,41 @@ export default function Dashboard({ user }) {
                                 key={`${sol.sesion_id}-${sol.solicitante_id}`}
                                 className="border rounded-3 p-3 bg-light shadow-sm"
                               >
-                                <div className="d-flex justify-content-between align-items-start mb-1">
-                                  <div>
-                                    <h4 className="h6 fw-bold mb-0">{sol.solicitante_nombre}</h4>
-                                    <span className="text-muted small">{sol.solicitante_email}</span>
+                                <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                                  <div style={{ minWidth: 0, flex: "1 1 200px" }}>
+                                    <h4 className="h6 fw-bold mb-0 text-dark text-break">
+                                      {sol.solicitante_nombre}
+                                    </h4>
+                                    <span className="text-muted small text-break d-block">
+                                      {sol.solicitante_email}
+                                    </span>
                                   </div>
-                                  <span className="badge bg-warning text-dark">Pendiente</span>
+                                  <span className="badge bg-warning text-dark flex-shrink-0 px-2 py-1">
+                                    ⏳ Pendiente
+                                  </span>
                                 </div>
-                                <div className="small text-secondary mb-2">
-                                  <strong>Sesión:</strong> {sol.sesion_nombre} ({sol.materia})
+                                <div className="small text-secondary mb-3 text-break">
+                                  <strong>Sesión:</strong> {sol.sesion_nombre}{" "}
+                                  <span className="badge bg-secondary-subtle text-secondary small ms-1">
+                                    {sol.materia}
+                                  </span>
                                 </div>
-                                <div className="d-flex gap-2">
+                                <div className="d-flex gap-2 flex-wrap">
                                   <button
                                     type="button"
-                                    className="btn btn-success btn-sm rounded-pill px-3"
+                                    className="btn btn-success btn-sm px-3"
                                     disabled={procesando === `${sol.sesion_id}-${sol.solicitante_id}`}
                                     onClick={() => responder(sol.sesion_id, sol.solicitante_id, "aceptar")}
                                   >
-                                    Aceptar
+                                    ✓ Aceptar
                                   </button>
                                   <button
                                     type="button"
-                                    className="btn btn-outline-danger btn-sm rounded-pill px-3"
+                                    className="btn btn-outline-danger btn-sm px-3"
                                     disabled={procesando === `${sol.sesion_id}-${sol.solicitante_id}`}
                                     onClick={() => responder(sol.sesion_id, sol.solicitante_id, "rechazar")}
                                   >
-                                    Rechazar
+                                    ✕ Rechazar
                                   </button>
                                 </div>
                               </div>
@@ -438,17 +478,26 @@ export default function Dashboard({ user }) {
                                 key={`${sol.sesion_id}-${sol.solicitante_id}`}
                                 className="border rounded-3 p-3 bg-light shadow-sm"
                               >
-                                <div className="d-flex justify-content-between align-items-start mb-1">
-                                  <div>
-                                    <h4 className="h6 fw-bold mb-0">{sol.solicitante_nombre}</h4>
-                                    <span className="text-muted small">{sol.solicitante_email}</span>
+                                <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                                  <div style={{ minWidth: 0, flex: "1 1 200px" }}>
+                                    <h4 className="h6 fw-bold mb-0 text-dark text-break">
+                                      {sol.solicitante_nombre}
+                                    </h4>
+                                    <span className="text-muted small text-break d-block">
+                                      {sol.solicitante_email}
+                                    </span>
                                   </div>
-                                  <span className="badge bg-info text-dark">Lugar #{sol.posicion || 1}</span>
+                                  <span className="badge bg-info text-dark flex-shrink-0 px-2 py-1">
+                                    Lugar #{sol.posicion || 1}
+                                  </span>
                                 </div>
-                                <div className="small text-secondary">
-                                  <strong>Sesión:</strong> {sol.sesion_nombre} ({sol.materia})
+                                <div className="small text-secondary mb-1 text-break">
+                                  <strong>Sesión:</strong> {sol.sesion_nombre}{" "}
+                                  <span className="badge bg-secondary-subtle text-secondary small ms-1">
+                                    {sol.materia}
+                                  </span>
                                 </div>
-                                <div className="small text-muted mt-1 fst-italic">
+                                <div className="small text-muted fst-italic">
                                   ℹ️ Ingresará automáticamente a confirmado si un participante sale.
                                 </div>
                               </div>
@@ -467,12 +516,12 @@ export default function Dashboard({ user }) {
                             {respondidasOrganizador.slice(0, 5).map((sol) => (
                               <div
                                 key={`${sol.sesion_id}-${sol.solicitante_id}`}
-                                className="border rounded p-2 bg-white small d-flex justify-content-between align-items-center"
+                                className="border rounded p-2 bg-white small d-flex justify-content-between align-items-center flex-wrap gap-2"
                               >
-                                <div>
+                                <div className="text-break" style={{ minWidth: 0, flex: "1 1 180px" }}>
                                   <strong>{sol.solicitante_nombre}</strong> en <em>{sol.sesion_nombre}</em>
                                 </div>
-                                <div>
+                                <div className="flex-shrink-0">
                                   {sol.estado === "aceptada" ? (
                                     <span className="badge bg-success">Aceptada</span>
                                   ) : (

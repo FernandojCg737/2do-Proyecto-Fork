@@ -35,6 +35,36 @@ function AppContent() {
     validateSession();
   }, []);
 
+  /**
+   * Efecto global de usabilidad móvil (Interacción Humano-Computador):
+   * Cuando el usuario pulsa un campo (input, textarea, select) o su etiqueta en móvil/tablet,
+   * el teclado virtual se despliega. Este escuchador asegura que la vista se desplace
+   * automáticamente para que el campo enfocado suba al centro del área visible sin quedar
+   * tapado por el teclado.
+   */
+  useEffect(() => {
+    function handleMobileFocus(event) {
+      const target = event.target;
+      if (
+        typeof window !== "undefined" &&
+        window.innerWidth <= 768 &&
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")
+      ) {
+        // Pausa de 300ms mientras el sistema operativo termina la animación de despliegue del teclado
+        setTimeout(() => {
+          target.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 300);
+      }
+    }
+
+    // focusin detecta cuando cualquier elemento del documento recibe foco (incluyendo etiquetas clickeadas)
+    window.addEventListener("focusin", handleMobileFocus);
+    return () => {
+      window.removeEventListener("focusin", handleMobileFocus);
+    };
+  }, []);
+
   return (
 
     <Layout
