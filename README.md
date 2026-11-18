@@ -6,10 +6,27 @@ Proyecto 2 de **Interacción Hombre-Computador**. Este repositorio es un fork de
 
 ---
 
+## App en la nube
+
+| | Enlace |
+| --- | --- |
+| **Aplicación** (frontend en Vercel) | **https://2do-proyecto-fork.vercel.app** |
+| API (backend en Render, contenedor Docker) | https://studymatch-api-f592.onrender.com/docs |
+| Base de datos | PostgreSQL 16 administrado en Render (red interna; no es pública) |
+
+Entra con un [usuario de prueba](#usuarios-de-prueba): por ejemplo `fernando.calani@studymatch.com` / `Password123!`.
+
+> El backend usa el plan gratis de Render: si estuvo más de 15 minutos sin uso, la primera petición puede tardar hasta un minuto mientras se activa.
+
+**Cómo está desplegado:** Vercel compila `frontend/` (`npm run build`) con la variable `VITE_API_URL` que apunta al backend. Render construye la imagen de [`backend/Dockerfile`](backend/Dockerfile), que arranca con [`backend/start.sh`](backend/start.sh): carga los datos de prueba si la base está vacía y levanta la API en el puerto `PORT`. Las variables del backend son `DATABASE_URL`, `SECRET_KEY`, `ALGORITHM`, `TOKEN_EXPIRE_HOURS` y `ALLOWED_ORIGINS` (con el dominio de Vercel).
+
+---
+
 ## Enlaces
 
 | Recurso | Enlace |
 | --- | --- |
+| **App en la nube** | https://2do-proyecto-fork.vercel.app |
 | Diseño en Figma (sistema de diseño y pantallas) | https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8 |
 | Repositorio original | https://github.com/BrayanG123/proyecto_2_IHC |
 | Evaluación heurística | [docs/evaluacion-heuristicas.md](docs/evaluacion-heuristicas.md) |
@@ -208,6 +225,7 @@ Verificado el **17/11/2026** en Windows 11 con Python 3.12.10, Node.js 24.15.0, 
 | Pruebas del backend | ✅ 49 de 49 |
 | Pruebas E2E con Playwright | ✅ 30 de 30 |
 | Opción A, `docker compose up -d --build` (API, frontend e inicio de sesión con usuario de prueba) | ✅ |
+| Despliegue en la nube (18/11/2026): CORS desde Vercel, inicio de sesión, datos de prueba en la BD y rutas `/`, `/login`, `/dashboard` y `/sesions` | ✅ |
 
 Los comandos de Linux/macOS son equivalentes, pero no se probaron en esos sistemas.
 
