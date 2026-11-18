@@ -1,6 +1,16 @@
 # StudyMatch — Diseño en Figma
 
-## Estado: creado y revisado el 2026-10-08
+## Archivo vigente (actualizado el 2026-11-17)
+
+Archivo: https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8
+
+- **🧩 Fundamentos y componentes:** 52 variables tomadas de `frontend/src/index.css` (colores, espaciados y radios), 9 estilos de texto en Plus Jakarta Sans (24 / 18 / 14 / 13px) y una sombra de card. Componentes: Button (Primary, Secondary y Danger × Default, Hover y Pressed × Default y Small, con prototipo de hover y clic), Badge (8 tonos), Campo, NavLink, BotónIcono y Navbar (escritorio y móvil, usuario e invitado, menú abierto). Incluye la guía de especificaciones.
+- **📱 Pantallas (según código):** las 11 páginas de `frontend/src` en escritorio (1280px) y móvil (390px), más el menú hamburguesa abierto y una prueba de auto-layout a 820px. Todo está armado con auto-layout: el alto se ajusta al contenido, los contenedores usan FILL y las grillas usan Wrap con ancho mínimo, como `col-md-6` y `col-lg-4`.
+- **🗄️ Diseño anterior (v1):** las pantallas previas, conservadas solo como referencia.
+
+---
+
+## Historial: versión anterior (2026-10-08)
 
 La edición remota volvió a funcionar en el archivo original. Se completaron las pantallas y la biblioteca; no hace falta ejecutar el plugin local.
 
