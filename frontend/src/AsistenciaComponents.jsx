@@ -290,7 +290,7 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
     <div
       className="modal show d-block"
       tabIndex="-1"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1055 }}
+      style={{ backgroundColor: "var(--color-fondo-modal)", zIndex: 1055 }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-asistencia-titulo"
@@ -740,7 +740,7 @@ export function ModalJustificarAusencia({ sesionId, sesionNombre, onClose, onSuc
     <div
       className="modal show d-block"
       tabIndex="-1"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1060 }}
+      style={{ backgroundColor: "var(--color-fondo-modal)", zIndex: 1060 }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-justificar-titulo"

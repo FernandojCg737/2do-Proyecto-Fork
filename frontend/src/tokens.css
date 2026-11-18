@@ -1,0 +1,191 @@
+/**
+ * tokens.css — EL ÚNICO LUGAR DE LA APP CON VALORES DE DISEÑO
+ * ============================================================================
+ * Generado desde las variables de Figma (colección «Tokens StudyMatch»):
+ * https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8/StudyMatch---Dise%C3%B1os-Oficiales-IHC?node-id=57-251
+ *
+ * - Los nombres son los MISMOS que en Figma: la variable «color-accion» es var(--color-accion).
+ * - Están nombrados por USO, no por apariencia (color-accion, no «violeta»).
+ * - Los componentes (index.css y los .jsx) usan siempre var(--token), nunca el valor.
+ * - Modo Claro en :root. Modo Oscuro en [data-tema="oscuro"] (solo los tokens que cambian).
+ *
+ * 69 tokens: 53 de color, 8 de espaciado, 4 de radio y 4 de tamaño de texto.
+ */
+
+:root {
+  /* Acción (botón primario, enlaces, foco) */
+  --color-accion: #4f46e5;
+  --color-accion-hover: #4338ca;
+  --color-accion-presionado: #3730a3;
+  --color-accion-suave: #e0e7ff;
+  --color-accion-borde: #c7d2fe;
+
+  /* Estados: éxito */
+  --color-exito: #10b981;
+  --color-exito-fondo: #d1fae5;
+  --color-exito-texto: #065f46;
+  --color-exito-borde: #a7f3d0;
+  --color-exito-alerta-fondo: #ecfdf5;
+
+  /* Estados: advertencia */
+  --color-advertencia: #f59e0b;
+  --color-advertencia-fondo: #fef3c7;
+  --color-advertencia-texto: #92400e;
+  --color-advertencia-borde: #fde68a;
+  --color-advertencia-alerta-fondo: #fff3cd;
+  --color-advertencia-alerta-borde: #ffc107;
+  --color-advertencia-borde-suave: #ffe69c;
+  --color-advertencia-alerta-texto: #664d03;
+
+  /* Estados: error / peligro */
+  --color-error: #ef4444;
+  --color-error-presionado: #dc2626;
+  --color-error-fondo: #fee2e2;
+  --color-error-fondo-suave: #fef2f2;
+  --color-error-texto: #991b1b;
+  --color-error-borde: #fecaca;
+
+  /* Estados: información */
+  --color-info: #0dcaf0;
+  --color-info-fondo: #cff4fc;
+  --color-info-alerta-fondo: #cff4fc;
+  --color-info-borde: #9eeaf9;
+  --color-info-texto: #055160;
+
+  /* Neutros y chips */
+  --color-neutro-fondo: #e2e3e5;
+  --color-neutro-texto: #6c757d;
+  --color-chip: #6c757d;
+  --color-chip-hover: #5c636a;
+  --color-chip-presionado: #565e64;
+
+  /* Superficies y fondos */
+  --color-fondo: #eaf0f6;
+  --color-superficie: #ffffff;
+  --color-superficie-suave: #f8f9fa;
+  --color-superficie-hover: #f1f5f9;
+  --color-superficie-presionada: #e2e8f0;
+  --color-deshabilitado-fondo: #e9ecef;
+  --color-fondo-modal: rgba(0, 0, 0, 0.5);
+
+  /* Texto */
+  --color-texto: #0f172a;
+  --color-texto-secundario: #64748b;
+  --color-texto-sobre-color: #ffffff;
+
+  /* Bordes */
+  --color-borde: #cbd5e1;
+  --color-borde-fuerte: #94a3b8;
+  --color-borde-suave: #e9ecef;
+
+  /* Navbar, panel de desarrollo y destacados */
+  --color-nav-inicio: #0b1329;
+  --color-nav-fin: #1e293b;
+  --color-nav-texto: #94a3b8;
+  --color-panel-dev: #2d3748;
+  --color-destacado: #c6f646;
+
+  /* Sombras */
+  --color-sombra: #0f172a;
+
+  /* Espaciado (escala de 4 px) */
+  --espacio-1: 4px;
+  --espacio-2: 8px;
+  --espacio-3: 12px;
+  --espacio-4: 16px;
+  --espacio-5: 20px;
+  --espacio-6: 24px;
+  --espacio-8: 32px;
+  --espacio-12: 48px;
+
+  /* Radios */
+  --radio-pequeno: 6px;
+  --radio-control: 8px;
+  --radio-alerta: 10px;
+  --radio-tarjeta: 12px;
+
+  /* Tamaños de texto */
+  --texto-titulo: 24px;
+  --texto-subtitulo: 18px;
+  --texto-cuerpo: 14px;
+  --texto-detalle: 13px;
+
+  /* Derivado para Bootstrap: el mismo color-accion en formato «r, g, b»
+     (Bootstrap lo necesita así en --bs-primary-rgb para sus utilidades). */
+  --color-accion-rgb: 79, 70, 229;
+}
+
+[data-tema="oscuro"] {
+  /* Acción (botón primario, enlaces, foco) */
+  --color-accion: #5b54eb;
+  --color-accion-hover: #4f46e5;
+  --color-accion-presionado: #4338ca;
+  --color-accion-suave: #1e1b4b;
+  --color-accion-borde: #3730a3;
+
+  /* Estados: éxito */
+  --color-exito: #34d399;
+  --color-exito-fondo: #052e26;
+  --color-exito-texto: #6ee7b7;
+  --color-exito-borde: #065f46;
+  --color-exito-alerta-fondo: #052e26;
+
+  /* Estados: advertencia */
+  --color-advertencia: #fbbf24;
+  --color-advertencia-fondo: #422006;
+  --color-advertencia-texto: #fcd34d;
+  --color-advertencia-borde: #78350f;
+  --color-advertencia-alerta-fondo: #422006;
+  --color-advertencia-alerta-borde: #f59e0b;
+  --color-advertencia-borde-suave: #78350f;
+  --color-advertencia-alerta-texto: #fde68a;
+
+  /* Estados: error / peligro */
+  --color-error: #f87171;
+  --color-error-presionado: #ef4444;
+  --color-error-fondo: #450a0a;
+  --color-error-fondo-suave: #3f1d1d;
+  --color-error-texto: #fca5a5;
+  --color-error-borde: #7f1d1d;
+
+  /* Estados: información */
+  --color-info: #0e7490;
+  --color-info-fondo: #083344;
+  --color-info-alerta-fondo: #083344;
+  --color-info-borde: #155e75;
+  --color-info-texto: #67e8f9;
+
+  /* Neutros y chips */
+  --color-neutro-fondo: #334155;
+  --color-neutro-texto: #94a3b8;
+  --color-chip: #475569;
+  --color-chip-hover: #64748b;
+  --color-chip-presionado: #334155;
+
+  /* Superficies y fondos */
+  --color-fondo: #0b1120;
+  --color-superficie: #111827;
+  --color-superficie-suave: #1e293b;
+  --color-superficie-hover: #1f2937;
+  --color-superficie-presionada: #334155;
+  --color-deshabilitado-fondo: #1f2937;
+  --color-fondo-modal: rgba(0, 0, 0, 0.6);
+
+  /* Texto */
+  --color-texto: #e2e8f0;
+  --color-texto-secundario: #94a3b8;
+
+  /* Bordes */
+  --color-borde: #334155;
+  --color-borde-fuerte: #475569;
+  --color-borde-suave: #1e293b;
+
+  /* Navbar, panel de desarrollo y destacados */
+  --color-panel-dev: #1e293b;
+  --color-destacado: #3f6212;
+
+  /* Sombras */
+  --color-sombra: #000000;
+
+  --color-accion-rgb: 91, 84, 235;
+}

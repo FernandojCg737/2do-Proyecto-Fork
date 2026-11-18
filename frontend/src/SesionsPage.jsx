@@ -872,7 +872,7 @@ export default function SesionsPage() {
 
       {/* --- TAREA 7: MODAL DE REPROGRAMACIÓN DE SESIÓN --- */}
       {modalReprogramar && (
-        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} role="dialog">
+        <div className="modal show d-block" style={{ backgroundColor: "var(--color-fondo-modal)" }} role="dialog">
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content shadow border-0">
               <form onSubmit={guardarReprogramacion}>
@@ -977,7 +977,7 @@ export default function SesionsPage() {
       {modalCancelar && (
         <div
           className="modal show d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1060 }}
+          style={{ backgroundColor: "var(--color-fondo-modal)", zIndex: 1060 }}
           tabIndex="-1"
           role="dialog"
         >

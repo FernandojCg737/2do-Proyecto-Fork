@@ -76,6 +76,53 @@ Entra con un [usuario de prueba](#usuarios-de-prueba): por ejemplo `fernando.cal
 
 ---
 
+## Sistema de diseño en el código (tokens)
+
+El código usa **los mismos tokens que Figma**, con los mismos nombres:
+
+| Pieza | Dónde |
+| --- | --- |
+| Definición de los tokens (el **único** archivo con valores) | [`frontend/src/tokens.css`](frontend/src/tokens.css): 69 tokens generados desde las variables de Figma. Modo Claro en `:root` y Oscuro en `[data-tema="oscuro"]` |
+| Variables en Figma | [🧩 Fundamentos y componentes](https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8/StudyMatch---Dise%C3%B1os-Oficiales-IHC?node-id=57-251), colección «Tokens StudyMatch» (modos Claro y Oscuro) |
+| Estilos de los componentes | [`frontend/src/index.css`](frontend/src/index.css), que solo usa `var(--token)`; las transparencias salen del token con `color-mix()` |
+
+Los tokens se nombran **por uso, no por apariencia**. Por ejemplo, la variable de Figma `color-accion` es `var(--color-accion)` en el código:
+
+| Grupo | Tokens (ejemplos) |
+| --- | --- |
+| Color | `color-accion`, `color-accion-hover`, `color-texto`, `color-texto-secundario`, `color-texto-sobre-color`, `color-error`, `color-exito`, `color-advertencia`, `color-info`, `color-fondo`, `color-superficie`, `color-borde`, `color-fondo-modal`, `color-sombra` |
+| Espaciado (escala de 4px) | `espacio-1` (4px), `espacio-2` (8px), `espacio-4` (16px), `espacio-6` (24px)… |
+| Radios | `radio-pequeno` (6px), `radio-control` (8px), `radio-alerta` (10px), `radio-tarjeta` (12px) |
+| Tamaño de texto | `texto-titulo` (24px), `texto-subtitulo` (18px), `texto-cuerpo` (14px), `texto-detalle` (13px) |
+
+**Sin colores fijos.** Fuera de `tokens.css` no hay ningún color escrito a mano. Se comprueba con este comando, que no debe mostrar nada:
+
+```bash
+git grep -nE "#[0-9a-fA-F]{3,8}\b|rgba?\(" -- frontend/src ":!frontend/src/tokens.css"
+```
+
+Antes había 66 colores fijos (ver [evidencias/clase-23.md](evidencias/clase-23.md)).
+
+### Tabla componente ↔ archivo
+
+| Componente en Figma | Archivo en el código | Clase o elemento |
+| --- | --- | --- |
+| **Button** (Primario, Secundario, Peligro × Normal, Hover, Presionado, Foco, Deshabilitado, Cargando) | [index.css:130](frontend/src/index.css#L130) · [index.css:161](frontend/src/index.css#L161) · [index.css:211](frontend/src/index.css#L211) | `.btn`, `.btn-primary`, `.btn-outline-secondary`, `.btn-outline-danger`, `.btn-sm`. Se usa en las 11 pantallas (94 botones, ver el [anexo de la clase 23](evidencias/clase-23.md#anexo--los-94-botones-de-la-app)) |
+| **Campo** (Default, Foco, Error, Deshabilitado) | [Components.jsx:40](frontend/src/Components.jsx#L40) · [index.css:221](frontend/src/index.css#L221) | Componente `Input` y `.form-control` / `.form-select` |
+| **Alerta** (Éxito, Error, Advertencia, Info) | [Components.jsx:76](frontend/src/Components.jsx#L76) · [index.css:288](frontend/src/index.css#L288) | Componente `Alert` y `.alert-*` |
+| **Badge** (8 tonos) | [index.css:250](frontend/src/index.css#L250) · por ejemplo, [Dashboard.jsx:211](frontend/src/Dashboard.jsx#L211) | `.badge.bg-*` |
+| **Checkbox** | [SesionsPage.jsx:463](frontend/src/SesionsPage.jsx#L463) | `<input type="checkbox">` «Solo sesiones a las que puedo unirme» |
+| **Chip de filtro** | [SesionsPage.jsx:479](frontend/src/SesionsPage.jsx#L479) | `.badge.bg-secondary` + `.btn-close-white` |
+| **Enlace** | [index.css:64](frontend/src/index.css#L64) · por ejemplo, [Auth.jsx:124](frontend/src/Auth.jsx#L124) | `<Link>` / `a` / `.btn-link` |
+| **Tarjeta de métrica** (Normal, Destacada, Advertencia) | [AnaliticaPage.jsx:91](frontend/src/AnaliticaPage.jsx#L91) | Tarjetas de `/analitica` |
+| **Navbar responsivo** (usuario / invitado, menú abierto / cerrado) | [Layout.jsx:64](frontend/src/Layout.jsx#L64) · [index.css:77](frontend/src/index.css#L77) | `<nav>` y `.navbar.bg-dark` |
+| **NavLink** (Default, Hover, Presionado, Activo, Activo móvil) | [Layout.jsx:131](frontend/src/Layout.jsx#L131) · [Layout.jsx:227](frontend/src/Layout.jsx#L227) · [index.css:94](frontend/src/index.css#L94) | Enlaces del navbar y del menú móvil, `.nav-link-btn` |
+| **BotónIcono** (🔍 ☰ ✕) | [Layout.jsx:94](frontend/src/Layout.jsx#L94) · [Layout.jsx:107](frontend/src/Layout.jsx#L107) | Lupa y botón del menú hamburguesa |
+| **Logo** | [Layout.jsx:71](frontend/src/Layout.jsx#L71) | `.navbar-brand` («📚 StudyMatch») |
+| Tarjeta (estilo base, no es un componente aparte en Figma) | [Components.jsx:15](frontend/src/Components.jsx#L15) · [index.css:106](frontend/src/index.css#L106) | `AuthCard` y `.card` |
+
+---
+
 ## Requisitos previos
 
 | Herramienta | Versión verificada | Necesaria para |

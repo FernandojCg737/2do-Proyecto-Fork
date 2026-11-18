@@ -561,7 +561,7 @@ export default function MisDatosPage() {
         <div
           className="modal fade show d-block"
           tabIndex="-1"
-          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
+          style={{ backgroundColor: "var(--color-fondo-modal)" }}
           role="dialog"
           aria-modal="true"
         >

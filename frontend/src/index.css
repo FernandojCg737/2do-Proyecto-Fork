@@ -1,49 +1,32 @@
 /**
  * ============================================================================
- * PALETA OFICIAL: COOL SLATE & MODERN TECH RECTANGULAR BUTTONS (IHC)
+ * ESTILOS DE COMPONENTES DE STUDYMATCH (IHC)
  * ============================================================================
- * 
+ *
+ * Este archivo NO contiene valores de color: todos salen de tokens.css
+ * (mismos nombres que las variables de Figma), por ejemplo var(--color-accion).
+ * Las transparencias se calculan a partir del token con color-mix().
+ *
  * Principios aplicados de Interacción Humano-Computador:
- * 1. Estilo de Botones Modern Tech: Esquinas suaves rectangulares (border-radius: 8px),
- *    eliminando el aspecto circular/burbuja para una interfaz limpia profesional.
- * 2. Barra de Navegación Monolítica: Una sola fila horizontal fluida sin saltos de línea.
+ * 1. Botones con esquinas suaves (radio-control), sin aspecto de burbuja.
+ * 2. Barra de navegación en una sola fila en escritorio.
  * 3. Prevención de desbordamiento de texto: white-space: nowrap en botones y
  *    diseño adaptable de métricas en móvil y tablet.
- * 4. Profundidad y contraste WCAG AAA: Fondo pizarra frío (#eaf0f6) con tarjetas
- *    blancas (#ffffff) y texto de alto contraste (#0f172a).
+ * 4. Contraste alto: fondo color-fondo con tarjetas color-superficie y
+ *    texto color-texto.
  */
 
 :root {
-  /* Paleta cromática principal */
-  --sm-primary: #4f46e5;         /* Índigo eléctrico moderno */
-  --sm-primary-hover: #4338ca;   /* Índigo oscuro para interacción */
-  --sm-primary-light: #e0e7ff;   /* Tinte azul suave */
-  --sm-primary-rgb: 79, 70, 229;
+  /* Sombras construidas desde el token color-sombra */
+  --sombra-tarjeta: 0 4px 18px -2px color-mix(in srgb, var(--color-sombra) 7%, transparent);
+  --sombra-tarjeta-hover: 0 12px 28px -4px color-mix(in srgb, var(--color-sombra) 12%, transparent);
 
-  /* Colores semánticos */
-  --sm-success: #10b981;
-  --sm-success-rgb: 16, 185, 129;
-  --sm-warning: #f59e0b;
-  --sm-warning-rgb: 245, 158, 11;
-  --sm-danger: #ef4444;
-  --sm-danger-rgb: 239, 68, 68;
-  --sm-info: #0ea5e9;
-
-  /* Superficies Pizarra Fría */
-  --sm-bg: #eaf0f6;              /* Gris pizarra azulado limpio */
-  --sm-surface: #ffffff;         /* Blanco puro brillante para tarjetas */
-  --sm-text: #0f172a;            /* Azul pizarra profundo (Slate-900) */
-  --sm-text-muted: #64748b;      /* Gris azulado medio (Slate-500) */
-  --sm-border: #cbd5e1;          /* Borde nítido definido (Slate-300) */
-  --sm-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.07);
-  --sm-shadow-hover: 0 12px 28px -4px rgba(15, 23, 42, 0.12);
-
-  /* Sobrescribir variables de Bootstrap 5 */
-  --bs-primary: var(--sm-primary);
-  --bs-primary-rgb: var(--sm-primary-rgb);
-  --bs-body-bg: var(--sm-bg);
-  --bs-body-color: var(--sm-text);
-  --bs-border-color: var(--sm-border);
+  /* Bootstrap 5 lee sus propias variables: se conectan a los tokens */
+  --bs-primary: var(--color-accion);
+  --bs-primary-rgb: var(--color-accion-rgb);
+  --bs-body-bg: var(--color-fondo);
+  --bs-body-color: var(--color-texto);
+  --bs-border-color: var(--color-borde);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -60,8 +43,8 @@ html, body {
 }
 
 body {
-  background-color: var(--sm-bg) !important;
-  color: var(--sm-text) !important;
+  background-color: var(--color-fondo) !important;
+  color: var(--color-texto) !important;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -73,28 +56,28 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
   font-weight: 700 !important;
   letter-spacing: -0.025em;
-  color: #0f172a !important;
+  color: var(--color-texto) !important;
   overflow-wrap: break-word;
   word-break: normal;
 }
 
 a {
-  color: var(--sm-primary);
+  color: var(--color-accion);
   text-decoration: none;
   transition: color 0.18s ease;
 }
 
 a:hover {
-  color: var(--sm-primary-hover);
+  color: var(--color-accion-hover);
 }
 
 /* -------------------------------------------------------------------------- */
 /* 2. BARRA DE NAVEGACIÓN SUPERIOR (NAVBAR FLUIDA EN UNA SOLA FILA)           */
 /* -------------------------------------------------------------------------- */
 .navbar.bg-dark {
-  background: linear-gradient(135deg, #0b1329 0%, #1e293b 100%) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 4px 20px rgba(11, 19, 41, 0.25) !important;
+  background: linear-gradient(135deg, var(--color-nav-inicio) 0%, var(--color-nav-fin) 100%) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-texto-sobre-color) 10%, transparent) !important;
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--color-nav-inicio) 25%, transparent) !important;
   padding-top: 0.65rem;
   padding-bottom: 0.65rem;
 }
@@ -103,7 +86,7 @@ a:hover {
   font-weight: 800 !important;
   letter-spacing: -0.02em;
   font-size: 1.25rem;
-  color: #ffffff !important;
+  color: var(--color-texto-sobre-color) !important;
   white-space: nowrap;
 }
 
@@ -111,42 +94,42 @@ a:hover {
 .navbar .nav-link-btn {
   font-size: 0.88rem !important;
   font-weight: 600 !important;
-  border-radius: 8px !important;
+  border-radius: var(--radio-control) !important;
   padding: 0.4rem 0.75rem !important;
   white-space: nowrap !important;
   transition: all 0.18s ease;
 }
 
 /* -------------------------------------------------------------------------- */
-/* 3. TARJETAS (CARDS) CON ELEVACIÓN MODERNA TECH                            */
+/* 3. TARJETAS (CARDS)                                                        */
 /* -------------------------------------------------------------------------- */
 .card {
-  background-color: var(--sm-surface) !important;
-  border: 1px solid var(--sm-border) !important;
-  border-radius: 12px !important; /* Esquinas modernas refinadas */
-  box-shadow: var(--sm-shadow) !important;
+  background-color: var(--color-superficie) !important;
+  border: 1px solid var(--color-borde) !important;
+  border-radius: var(--radio-tarjeta) !important;
+  box-shadow: var(--sombra-tarjeta) !important;
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease;
   word-wrap: break-word;
   overflow: hidden;
 }
 
 .card:hover {
-  box-shadow: var(--sm-shadow-hover) !important;
-  border-color: #94a3b8 !important;
+  box-shadow: var(--sombra-tarjeta-hover) !important;
+  border-color: var(--color-borde-fuerte) !important;
 }
 
 .auth-card,
 .card-header {
-  border-top-left-radius: 12px !important;
-  border-top-right-radius: 12px !important;
+  border-top-left-radius: var(--radio-tarjeta) !important;
+  border-top-right-radius: var(--radio-tarjeta) !important;
 }
 
 /* -------------------------------------------------------------------------- */
-/* 4. BOTONES MODERNOS RECTANGULARES CON ESQUINAS SUAVES (NO CIRCULARES)     */
+/* 4. BOTONES (componente Button de Figma: Primario, Secundario, Peligro)     */
 /* -------------------------------------------------------------------------- */
 .btn {
   min-height: 40px !important;
-  border-radius: 8px !important; /* Estilo rectangular moderno (NO circular ni burbuja) */
+  border-radius: var(--radio-control) !important;
   font-weight: 600 !important;
   font-size: 0.92rem;
   letter-spacing: 0.15px;
@@ -174,52 +157,54 @@ a:hover {
   line-height: 1.35 !important;
 }
 
-/* Botón primario con elevación suave */
+/* Primario */
 .btn-primary {
-  background-color: var(--sm-primary) !important;
-  border-color: var(--sm-primary) !important;
-  color: #ffffff !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 3px 8px rgba(79, 70, 229, 0.25) !important;
+  background-color: var(--color-accion) !important;
+  border-color: var(--color-accion) !important;
+  color: var(--color-texto-sobre-color) !important;
+  box-shadow:
+    0 1px 3px color-mix(in srgb, var(--color-sombra) 8%, transparent),
+    0 3px 8px color-mix(in srgb, var(--color-accion) 25%, transparent) !important;
 }
 
 .btn-primary:hover,
 .btn-primary:focus {
-  background-color: var(--sm-primary-hover) !important;
-  border-color: var(--sm-primary-hover) !important;
+  background-color: var(--color-accion-hover) !important;
+  border-color: var(--color-accion-hover) !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-accion) 35%, transparent) !important;
 }
 
 .btn-primary:active {
   transform: translateY(0);
 }
 
-/* Botón secundario en estilo contorno tech */
+/* Secundario */
 .btn-outline-secondary {
-  border: 1px solid var(--sm-border) !important;
-  color: var(--sm-text) !important;
-  background-color: #ffffff !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid var(--color-borde) !important;
+  color: var(--color-texto) !important;
+  background-color: var(--color-superficie) !important;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-sombra) 3%, transparent) !important;
 }
 
 .btn-outline-secondary:hover {
-  background-color: #f1f5f9 !important;
-  border-color: #94a3b8 !important;
-  color: #0f172a !important;
+  background-color: var(--color-superficie-hover) !important;
+  border-color: var(--color-borde-fuerte) !important;
+  color: var(--color-texto) !important;
 }
 
-/* Botón de peligro / logout */
+/* Peligro / cerrar sesión */
 .btn-outline-danger {
-  border-radius: 8px !important;
-  border: 1px solid rgba(239, 68, 68, 0.4) !important;
-  color: #ef4444 !important;
+  border-radius: var(--radio-control) !important;
+  border: 1px solid color-mix(in srgb, var(--color-error) 40%, transparent) !important;
+  color: var(--color-error) !important;
   background-color: transparent !important;
 }
 
 .btn-outline-danger:hover {
-  background-color: #ef4444 !important;
-  border-color: #ef4444 !important;
-  color: #ffffff !important;
+  background-color: var(--color-error) !important;
+  border-color: var(--color-error) !important;
+  color: var(--color-texto-sobre-color) !important;
 }
 
 /* Botones pequeños */
@@ -227,20 +212,20 @@ a:hover {
   min-height: 34px !important;
   padding: 0.35rem 0.85rem !important;
   font-size: 0.86rem !important;
-  border-radius: 6px !important;
+  border-radius: var(--radio-pequeno) !important;
 }
 
 /* -------------------------------------------------------------------------- */
-/* 5. CAMPOS DE ENTRADA (INPUTS & SELECTS CON ESQUINAS SUAVES)               */
+/* 5. CAMPOS DE ENTRADA (componente Campo de Figma)                           */
 /* -------------------------------------------------------------------------- */
 .form-control,
 .form-select,
 input,
 textarea {
   min-height: 44px !important;
-  border-radius: 8px !important; /* Consistente con el radio de los botones */
-  border: 1.5px solid var(--sm-border) !important;
-  background-color: #ffffff !important;
+  border-radius: var(--radio-control) !important;
+  border: 1.5px solid var(--color-borde) !important;
+  background-color: var(--color-superficie) !important;
   padding: 0.55rem 0.95rem !important;
   font-size: 0.95rem !important;
   font-family: inherit !important;
@@ -254,18 +239,18 @@ textarea {
 
 .form-control:focus,
 .form-select:focus {
-  border-color: var(--sm-primary) !important;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18) !important;
+  border-color: var(--color-accion) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accion) 18%, transparent) !important;
   outline: none !important;
 }
 
 /* -------------------------------------------------------------------------- */
-/* 6. BADGES E INSIGNIAS (MODERN RECTANGULAR LABELS)                          */
+/* 6. BADGES (componente Badge de Figma)                                      */
 /* -------------------------------------------------------------------------- */
 .badge {
   padding: 0.35em 0.7em !important;
   font-weight: 600 !important;
-  border-radius: 6px !important; /* Etiquetas modernas limpias */
+  border-radius: var(--radio-pequeno) !important;
   font-size: 0.8rem !important;
   letter-spacing: 0.1px;
   display: inline-flex;
@@ -274,49 +259,49 @@ textarea {
 }
 
 .badge.bg-success, .text-bg-success {
-  background-color: #d1fae5 !important;
-  color: #065f46 !important;
-  border: 1px solid #a7f3d0;
+  background-color: var(--color-exito-fondo) !important;
+  color: var(--color-exito-texto) !important;
+  border: 1px solid var(--color-exito-borde);
 }
 
 .badge.bg-warning, .text-bg-warning {
-  background-color: #fef3c7 !important;
-  color: #92400e !important;
-  border: 1px solid #fde68a;
+  background-color: var(--color-advertencia-fondo) !important;
+  color: var(--color-advertencia-texto) !important;
+  border: 1px solid var(--color-advertencia-borde);
 }
 
 .badge.bg-danger, .text-bg-danger {
-  background-color: #fee2e2 !important;
-  color: #991b1b !important;
-  border: 1px solid #fecaca;
+  background-color: var(--color-error-fondo) !important;
+  color: var(--color-error-texto) !important;
+  border: 1px solid var(--color-error-borde);
 }
 
 .badge.bg-primary, .text-bg-primary {
-  background-color: var(--sm-primary-light) !important;
-  color: var(--sm-primary) !important;
-  border: 1px solid #c7d2fe;
+  background-color: var(--color-accion-suave) !important;
+  color: var(--color-accion) !important;
+  border: 1px solid var(--color-accion-borde);
 }
 
 /* -------------------------------------------------------------------------- */
-/* 7. ALERTAS Y RETROALIMENTACIÓN                                             */
+/* 7. ALERTAS (componente Alerta de Figma)                                    */
 /* -------------------------------------------------------------------------- */
 .alert {
-  border-radius: 10px !important;
+  border-radius: var(--radio-alerta) !important;
   font-weight: 500 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-sombra) 4%, transparent) !important;
   word-break: break-word;
 }
 
 .alert-success {
-  background-color: #ecfdf5 !important;
-  border-color: #a7f3d0 !important;
-  color: #065f46 !important;
+  background-color: var(--color-exito-alerta-fondo) !important;
+  border-color: var(--color-exito-borde) !important;
+  color: var(--color-exito-texto) !important;
 }
 
 .alert-danger {
-  background-color: #fef2f2 !important;
-  border-color: #fecaca !important;
-  color: #991b1b !important;
+  background-color: var(--color-error-fondo-suave) !important;
+  border-color: var(--color-error-borde) !important;
+  color: var(--color-error-texto) !important;
 }
 
 /* -------------------------------------------------------------------------- */

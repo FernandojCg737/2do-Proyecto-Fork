@@ -69,7 +69,7 @@ export default function AnaliticaPage() {
 
       {/* Encabezado con estilo de terminal / panel de desarrollo */}
       <div className="card shadow-sm border-0 mb-4 overflow-hidden" style={{ borderRadius: "14px" }}>
-        <div className="p-3 text-white d-flex justify-content-between align-items-center flex-wrap gap-2" style={{ backgroundColor: "#2d3748" }}>
+        <div className="p-3 text-white d-flex justify-content-between align-items-center flex-wrap gap-2" style={{ backgroundColor: "var(--color-panel-dev)" }}>
           <div>
             <span className="fw-mono text-warning me-2">/analitica</span>
             <span className="fw-semibold text-white">· StudyMatch</span>
@@ -112,8 +112,8 @@ export default function AnaliticaPage() {
                 className="card h-100 border-0 shadow-sm p-4 text-center"
                 style={{
                   borderRadius: "12px",
-                  backgroundColor: "#c6f646",
-                  color: "#1a202c",
+                  backgroundColor: "var(--color-destacado)",
+                  color: "var(--color-texto)",
                 }}
               >
                 <div className="display-5 fw-bold mb-1">{porcentaje} %</div>
@@ -203,8 +203,8 @@ export default function AnaliticaPage() {
               className="alert border-0 shadow-sm p-4 mb-4"
               style={{
                 borderRadius: "12px",
-                backgroundColor: "#fff3cd",
-                borderLeft: "6px solid #ffc107",
+                backgroundColor: "var(--color-advertencia-alerta-fondo)",
+                borderLeft: "6px solid var(--color-advertencia-alerta-borde)",
               }}
             >
               <div className="d-flex align-items-center gap-2 mb-2">
@@ -265,7 +265,7 @@ export default function AnaliticaPage() {
             {/* Columna Derecha: Reglas de Rúbrica y Consultas IHC */}
             <div className="col-12 col-lg-5">
               {/* Caja Obligatorio - Panel Propio */}
-              <div className="card border-0 shadow-sm p-3 bg-white mb-3" style={{ borderRadius: "10px", borderLeft: "4px solid #10b981" }}>
+              <div className="card border-0 shadow-sm p-3 bg-white mb-3" style={{ borderRadius: "var(--radio-alerta)", borderLeft: "4px solid var(--color-exito)" }}>
                 <span className="badge bg-success-subtle text-success text-uppercase fw-bold align-self-start mb-2 px-2 py-1">
                   OBLIGATORIO · PANEL PROPIO
                 </span>
@@ -279,7 +279,7 @@ export default function AnaliticaPage() {
               </div>
 
               {/* Caja Regla de Privacidad */}
-              <div className="card border-0 shadow-sm p-3 bg-white" style={{ borderRadius: "10px", borderLeft: "4px solid #6366f1" }}>
+              <div className="card border-0 shadow-sm p-3 bg-white" style={{ borderRadius: "var(--radio-alerta)", borderLeft: "4px solid var(--color-accion)" }}>
                 <span className="badge bg-primary-subtle text-primary text-uppercase fw-bold align-self-start mb-2 px-2 py-1">
                   REGLA IHC · PRIVACIDAD
                 </span>
