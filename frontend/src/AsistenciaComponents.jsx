@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Alert, Loading } from "./Components";
 import { apiRequest } from "./api";
 import { track } from "./analitica";
+import { formatearFechaHora } from "./fechas";
 
 // =============================================================================
 // --- TAREA 8: COMPONENTES DE ASISTENCIA, JUSTIFICACIONES Y AUDITORÍA ---
@@ -10,35 +11,6 @@ import { track } from "./analitica";
 // - Visibilidad del estado del sistema (Nielsen Heuristic #1)
 // - Prevención de errores con validaciones en cliente y servidor
 // =============================================================================
-
-/**
- * Formatea marcas de tiempo ISO a formato legible boliviano (DD/MM/YYYY, hh:mm a. m./p. m.)
- * Garantizando la conversión a la zona horaria oficial de Bolivia (America/La_Paz, UTC-4).
- */
-function formatearFechaHora(fechaIso) {
-  if (!fechaIso) return "Fecha no registrada";
-  try {
-    let str = String(fechaIso).trim();
-    // Si la cadena ISO no tiene indicador explícito de zona horaria (Z o offset +/-),
-    // se le agrega 'Z' para asegurar que JavaScript interprete la marca como UTC
-    // y toLocaleString realice la resta correspondiente a la zona horaria de Bolivia (UTC-4).
-    if (!str.endsWith("Z") && !str.includes("+") && !str.slice(10).includes("-")) {
-      str = str + "Z";
-    }
-    const fecha = new Date(str);
-    return fecha.toLocaleString("es-BO", {
-      timeZone: "America/La_Paz",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  } catch {
-    return String(fechaIso);
-  }
-}
 
 /**
  * Componente InsigniaAsistencia:
@@ -222,11 +194,7 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
     setError("");
     setMensaje("");
 
-    if (!datos || datos.participantes.length === 0) {
-      setError("No hay participantes confirmados para registrar asistencia.");
-      return;
-    }
-
+    // El formulario solo se muestra cuando hay participantes confirmados (ver más abajo).
     // Convertir el estado a la lista de items requerida por el backend
     const payload = datos.participantes.map((p) => ({
       usuario_id: p.usuario_id,

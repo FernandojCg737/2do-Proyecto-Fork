@@ -8,33 +8,21 @@ import {
   ModalControlAsistencia,
   ModalJustificarAusencia,
 } from "./AsistenciaComponents";
-
-// Formatea fecha a formato legible local DD/MM/YYYY
-function formatearFecha(fecha) {
-  if (!fecha) return "";
-  const partes = String(fecha).split("-");
-  if (partes.length === 3) {
-    const [anio, mes, dia] = partes;
-    return `${dia}/${mes}/${anio}`;
-  }
-  return String(fecha);
-}
+import { formatearFecha } from "./fechas";
 
 // Formatea marca de tiempo ISO a fecha y hora de Bolivia
 function formatearHora(fechaIso) {
   if (!fechaIso) return "";
-  try {
-    const fecha = new Date(fechaIso);
-    return fecha.toLocaleDateString("es-BO", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return fechaIso;
-  }
+  const fecha = new Date(fechaIso);
+  // Un valor que no es una fecha se muestra tal cual en lugar de «Invalid Date».
+  if (Number.isNaN(fecha.getTime())) return String(fechaIso);
+  return fecha.toLocaleDateString("es-BO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function Dashboard({ user }) {

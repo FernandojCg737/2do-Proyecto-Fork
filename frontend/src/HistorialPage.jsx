@@ -4,37 +4,7 @@ import { Alert, Loading } from "./Components";
 import { apiRequest } from "./api";
 import NavPills from "./NavPills";
 import { InsigniaAsistencia, ModalJustificarAusencia } from "./AsistenciaComponents";
-
-// Formatea fecha YYYY-MM-DD a DD/MM/YYYY
-function formatearFecha(fecha) {
-  if (!fecha) return "";
-  const partes = String(fecha).split("-");
-  if (partes.length === 3) {
-    const [anio, mes, dia] = partes;
-    return `${dia}/${mes}/${anio}`;
-  }
-  return String(fecha);
-}
-
-// Formatea fecha y hora con zona horaria de Bolivia (America/La_Paz, UTC-4)
-function formatearFechaHora(fecha) {
-  if (!fecha) return "Fecha no registrada";
-
-  let str = String(fecha).trim();
-  if (!str.endsWith("Z") && !str.includes("+") && !str.slice(10).includes("-")) {
-    str = str + "Z";
-  }
-
-  return new Date(str).toLocaleString("es-BO", {
-    timeZone: "America/La_Paz",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
+import { formatearFecha, formatearFechaHora } from "./fechas";
 
 export default function HistorialPage() {
   const [historial, setHistorial] = useState([]);

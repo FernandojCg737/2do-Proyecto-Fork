@@ -28,6 +28,9 @@ frontend/dist/
 frontend/dist-ssr/
 frontend/.vite/
 frontend/coverage/
+# Datos intermedios de cobertura (el reporte final se versiona en docs/cobertura/)
+/coverage/
+coverage-backend.xml
 *.tsbuildinfo
 
 # Variables de entorno locales

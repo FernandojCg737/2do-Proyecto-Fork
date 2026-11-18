@@ -4,6 +4,7 @@ import { Alert, Input, Loading } from "./Components";
 import { apiRequest } from "./api";
 import NavPills from "./NavPills";
 import { track } from "./analitica";
+import { formatearFecha } from "./fechas";
 import {
   InsigniaAsistencia,
   ModalControlAsistencia,
@@ -20,17 +21,6 @@ const nombresFiltros = {
   hasta: "Hasta",
   disponible: "Disponibilidad",
 };
-
-// Formatea fechas YYYY-MM-DD a DD/MM/YYYY
-function formatearFecha(fecha) {
-  if (!fecha) return "";
-  const partes = String(fecha).split("-");
-  if (partes.length === 3) {
-    const [anio, mes, dia] = partes;
-    return `${dia}/${mes}/${anio}`;
-  }
-  return String(fecha);
-}
 
 // Parsea los parámetros URL a un objeto de estado
 function leerFiltros(parametros) {
@@ -222,16 +212,9 @@ export default function SesionsPage() {
     e.preventDefault(); // Previene la recarga default del formulario HTML
     if (!modalCancelar) return; // Salvaguarda si no hay sesión seleccionada
 
+    // Regla del motivo (mínimo 5 caracteres): el botón «Confirmar cancelación» queda
+    // desactivado hasta cumplirla, y el backend la vuelve a validar.
     const motivoLimpio = motivoCancelacion.trim(); // Limpia espacios en blanco iniciales y finales
-    if (motivoLimpio.length < 5) { // Regla obligatoria: motivo con al menos 5 caracteres
-      setErrorInscripcion("El motivo de cancelación debe tener al menos 5 caracteres.");
-      // Diapositiva 11/13: Registro del error de validación
-      track("cancelacion_fallida", {
-        sesion_id: modalCancelar.id,
-        motivo: "motivo_muy_corto",
-      });
-      return;
-    }
 
     setCancelando(true); // Bloquea el botón e indica procesamiento
     setErrorInscripcion(""); // Limpia mensajes de error previos

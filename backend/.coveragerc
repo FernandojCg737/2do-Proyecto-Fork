@@ -1,0 +1,12 @@
+# Configuración de coverage.py para el backend (la usa scripts/cobertura.mjs)
+[run]
+source =
+    app
+    seed_data
+parallel = True
+data_file = .coverage
+
+[report]
+show_missing = True
+exclude_also =
+    if __name__ == .__main__.:

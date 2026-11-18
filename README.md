@@ -31,6 +31,7 @@ Entra con un [usuario de prueba](#usuarios-de-prueba): por ejemplo `fernando.cal
 | Figma · **Pantallas** armadas con los componentes (escritorio, móvil y tema oscuro) | [📱 Pantallas (según código)](https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8/StudyMatch---Dise%C3%B1os-Oficiales-IHC?node-id=57-252) |
 | Repositorio original | https://github.com/BrayanG123/proyecto_2_IHC |
 | **Accesibilidad**: reporte de Lighthouse interpretado y corregido (promedio 94,8 → **100**) y contraste AA comprobado | [docs/accesibilidad.md](docs/accesibilidad.md) · [reportes de Lighthouse](docs/accesibilidad/lighthouse/) |
+| **Pruebas automatizadas**: cobertura del código agregado en el fork (diff-cover) **100 %** | [docs/cobertura/index.html](docs/cobertura/index.html) · [resumen](docs/cobertura/resumen.md) · comando en [Pruebas](#cobertura-del-código-agregado-en-el-fork-diff-cover-100-) |
 | Evaluación heurística | [docs/evaluacion-heuristicas.md](docs/evaluacion-heuristicas.md) |
 | Decisiones de interacción | [docs/decisiones-interaccion.md](docs/decisiones-interaccion.md) |
 | Tablas de hallazgos | [docs/tabla_de_hallazgos.md](docs/tabla_de_hallazgos.md) · [docs/clase_16_tabla_de_hallazgos.md](docs/clase_16_tabla_de_hallazgos.md) |
@@ -266,6 +267,30 @@ Solo la auditoría de accesibilidad (WCAG 2.1 AA en las 11 pantallas, en escrito
 ```bash
 pnpm exec playwright test tests/accesibilidad_wcag_aa.spec.ts
 ```
+
+### Cobertura del código agregado en el fork (diff-cover): **100 %**
+
+Un solo comando ejecuta las pruebas unitarias del backend (96), carga los datos de prueba y corre la suite E2E completa (39) midiendo la cobertura del backend (coverage.py) y del frontend (V8 de Chromium). Después, `diff-cover` la compara contra el repositorio original y mide **solo las líneas que agregó el fork**.
+
+Resultado actual: **1562 líneas agregadas · 0 sin cubrir · 100 %** → [reporte HTML](docs/cobertura/index.html) · [resumen](docs/cobertura/resumen.md).
+
+Preparación (una sola vez), desde la raíz:
+
+```bash
+git remote add upstream https://github.com/BrayanG123/proyecto_2_IHC.git
+git fetch upstream
+pnpm install
+pnpm exec playwright install chromium
+backend/venv/Scripts/pip install -r backend/requirements.txt coverage diff-cover   # Linux/macOS: backend/venv/bin/pip
+```
+
+Ejecutar (los puertos 8000 y 5173 deben estar libres; con Docker, primero `docker compose stop`):
+
+```bash
+pnpm cobertura
+```
+
+Usa una base SQLite temporal (no toca tus datos) y restaura las capturas de `evidencias/` que regeneran las pruebas. Regenera `docs/cobertura/`.
 
 ---
 

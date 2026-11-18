@@ -1,4 +1,5 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from './fixtures/cobertura';
+import type { Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 /**
@@ -31,6 +32,12 @@ const PRIVADAS = [
 async function violacionesWcagAA(page: Page, ruta: string) {
   await page.goto(ruta);
   await page.waitForLoadState('networkidle');
+  // Se audita el estado final, no una transición a medias: los botones animan su color
+  // 0.18 s (index.css) y axe podría medir un color intermedio. [class] iguala la
+  // especificidad de .btn y, al cargarse después, gana aunque ambos usen !important.
+  await page.addStyleTag({
+    content: '*, *::before, *::after, [class] { transition: none !important; animation: none !important; }',
+  });
   const resultado = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

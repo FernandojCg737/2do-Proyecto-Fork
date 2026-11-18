@@ -53,9 +53,8 @@ export function Input({ label, name, id, onFocus, ...props }) {
         event.target.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 300);
     }
-    if (onFocus) {
-      onFocus(event);
-    }
+    // Respeta un onFocus propio si la pantalla que usa el campo lo define.
+    onFocus?.(event);
   };
 
   return (

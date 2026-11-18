@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/cobertura';
 
 test.describe('Clase 18 - Reto de Automatización E2E StudyMatch', () => {
 

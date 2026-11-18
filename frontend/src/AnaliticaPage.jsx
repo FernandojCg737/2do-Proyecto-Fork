@@ -54,12 +54,10 @@ export default function AnaliticaPage() {
 
   function formatearHora(fechaIso) {
     if (!fechaIso) return "";
-    try {
-      const d = new Date(fechaIso);
-      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    } catch (_) {
-      return fechaIso;
-    }
+    const d = new Date(fechaIso);
+    // Un valor que no es una fecha se muestra tal cual en lugar de «Invalid Date».
+    if (Number.isNaN(d.getTime())) return String(fechaIso);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
   return (
