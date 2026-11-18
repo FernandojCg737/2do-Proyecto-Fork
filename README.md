@@ -27,7 +27,8 @@ Entra con un [usuario de prueba](#usuarios-de-prueba): por ejemplo `fernando.cal
 | Recurso | Enlace |
 | --- | --- |
 | **App en la nube** | https://2do-proyecto-fork.vercel.app |
-| Diseño en Figma (sistema de diseño y pantallas) | https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8 |
+| Figma · **Sistema de diseño** (logo, paleta, tipografía, tokens en modo claro y oscuro, 12 componentes con variantes y estados) | [🧩 Fundamentos y componentes](https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8/StudyMatch---Dise%C3%B1os-Oficiales-IHC?node-id=57-251) |
+| Figma · **Pantallas** armadas con los componentes (escritorio, móvil y tema oscuro) | [📱 Pantallas (según código)](https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8/StudyMatch---Dise%C3%B1os-Oficiales-IHC?node-id=57-252) |
 | Repositorio original | https://github.com/BrayanG123/proyecto_2_IHC |
 | Evaluación heurística | [docs/evaluacion-heuristicas.md](docs/evaluacion-heuristicas.md) |
 | Decisiones de interacción | [docs/decisiones-interaccion.md](docs/decisiones-interaccion.md) |

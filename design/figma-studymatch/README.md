@@ -1,11 +1,29 @@
 # StudyMatch — Diseño en Figma
 
-## Archivo vigente (actualizado el 2026-11-17)
+## Archivo vigente (actualizado el 2026-11-18)
 
-Archivo: https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8
+Archivo (público, solo lectura): [StudyMatch - Diseños Oficiales IHC](https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8/StudyMatch---Dise%C3%B1os-Oficiales-IHC)
 
-- **🧩 Fundamentos y componentes:** 52 variables tomadas de `frontend/src/index.css` (colores, espaciados y radios), 9 estilos de texto en Plus Jakarta Sans (24 / 18 / 14 / 13px) y una sombra de card. Componentes: Button (Primary, Secondary y Danger × Default, Hover y Pressed × Default y Small, con prototipo de hover y clic), Badge (8 tonos), Campo, NavLink, BotónIcono y Navbar (escritorio y móvil, usuario e invitado, menú abierto). Incluye la guía de especificaciones.
-- **📱 Pantallas (según código):** las 11 páginas de `frontend/src` en escritorio (1280px) y móvil (390px), más el menú hamburguesa abierto y una prueba de auto-layout a 820px. Todo está armado con auto-layout: el alto se ajusta al contenido, los contenedores usan FILL y las grillas usan Wrap con ancho mínimo, como `col-md-6` y `col-lg-4`.
+Enlaces directos a cada página:
+- [🧩 Fundamentos y componentes](https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8/StudyMatch---Dise%C3%B1os-Oficiales-IHC?node-id=57-251)
+- [📱 Pantallas (según código)](https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8/StudyMatch---Dise%C3%B1os-Oficiales-IHC?node-id=57-252)
+- [🗄️ Diseño anterior (v1)](https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8/StudyMatch---Dise%C3%B1os-Oficiales-IHC?node-id=0-1)
+
+- **🧩 Fundamentos y componentes:**
+  - **Tokens:** la colección «Tokens StudyMatch» tiene **67 variables nombradas por uso** y con los mismos nombres que en el código (`color-accion`, `color-texto`, `color-error`, `espacio-4`, `radio-control`, `texto-titulo`…). Cada una muestra su nombre CSS (`var(--color-accion)`) y tiene dos modos: **Claro** y **Oscuro**.
+  - **Tipografía:** 9 estilos de texto en Plus Jakarta Sans, con el tamaño ligado a los tokens `texto-titulo` (24px), `texto-subtitulo` (18px), `texto-cuerpo` (14px) y `texto-detalle` (13px).
+  - **Logo** en tres versiones (App, Horizontal e Isotipo) y dos temas.
+  - **12 componentes con variantes y estados:**
+    - **Button:** Primario, Secundario y Peligro × Normal, Hover, Presionado, Foco, Deshabilitado y Cargando × Normal y Pequeño, con prototipo.
+    - Campo (Default, Foco, Error, Deshabilitado), Badge, Alerta, Checkbox, Enlace, Chip de filtro, Tarjeta de métrica, NavLink, BotónIcono, Navbar responsivo (el menú hamburguesa aparece al achicar el frame) y Logo.
+  - **Guía de especificaciones** y lámina **«🌗 Tema claro / Tema oscuro»**.
+- **📱 Pantallas (según código):** las 11 páginas de `frontend/src` en escritorio (1280px) y móvil (390px). Además:
+  - el menú hamburguesa abierto,
+  - el paso 2 de Recuperar contraseña,
+  - una prueba de auto-layout a 820px,
+  - la pantalla 05 en tema oscuro.
+
+  Todo está armado con instancias de los componentes y con auto-layout: el alto se ajusta al contenido, los contenedores usan FILL y las grillas usan Wrap con ancho mínimo, como `col-md-6` y `col-lg-4`.
 - **🗄️ Diseño anterior (v1):** las pantallas previas, conservadas solo como referencia.
 
 ---
