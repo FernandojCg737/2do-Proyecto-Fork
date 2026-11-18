@@ -40,8 +40,14 @@ if not is_sqlite:
         # Intenta una conexión rápida de prueba
         with engine.connect() as test_conn:
             pass
-    except Exception:
-        # Si no responde el servidor PostgreSQL (p. ej. Docker apagado), usa SQLite local
+    except Exception as error_conexion:
+        # Si no responde el servidor PostgreSQL (p. ej. Docker apagado), usa SQLite local.
+        # Se avisa en el log: en la nube (Render) esto indica un DATABASE_URL mal configurado.
+        print(
+            "[AVISO] No se pudo conectar a PostgreSQL "
+            f"({type(error_conexion).__name__}: {error_conexion}). Se usará SQLite local.",
+            flush=True,
+        )
         db_folder = BASE_DIR / "database"
         db_folder.mkdir(parents=True, exist_ok=True)
         DB_PATH = db_folder / "studymatch.db"
