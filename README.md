@@ -30,6 +30,7 @@ Entra con un [usuario de prueba](#usuarios-de-prueba): por ejemplo `fernando.cal
 | Figma · **Sistema de diseño** (logo, paleta, tipografía, tokens en modo claro y oscuro, 12 componentes con variantes y estados) | [🧩 Fundamentos y componentes](https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8/StudyMatch---Dise%C3%B1os-Oficiales-IHC?node-id=57-251) |
 | Figma · **Pantallas** armadas con los componentes (escritorio, móvil y tema oscuro) | [📱 Pantallas (según código)](https://www.figma.com/design/Rgr5SlD3oZ6f5vDdbbPRO8/StudyMatch---Dise%C3%B1os-Oficiales-IHC?node-id=57-252) |
 | Repositorio original | https://github.com/BrayanG123/proyecto_2_IHC |
+| **Accesibilidad**: reporte de Lighthouse interpretado y corregido (promedio 94,8 → **100**) y contraste AA comprobado | [docs/accesibilidad.md](docs/accesibilidad.md) · [reportes de Lighthouse](docs/accesibilidad/lighthouse/) |
 | Evaluación heurística | [docs/evaluacion-heuristicas.md](docs/evaluacion-heuristicas.md) |
 | Decisiones de interacción | [docs/decisiones-interaccion.md](docs/decisiones-interaccion.md) |
 | Tablas de hallazgos | [docs/tabla_de_hallazgos.md](docs/tabla_de_hallazgos.md) · [docs/clase_16_tabla_de_hallazgos.md](docs/clase_16_tabla_de_hallazgos.md) |
@@ -258,7 +259,13 @@ pnpm exec playwright show-report   # informe HTML
 
 > Usa `pnpm exec` y no `npx`: el `package.json` de la raíz exige pnpm (`devEngines`), y `npx` termina con el error `EBADDEVENGINES`.
 
-Las pruebas E2E crean usuarios y sesiones nuevos en la base de datos que esté usando el backend.
+Las pruebas E2E crean usuarios y sesiones nuevos en la base de datos que esté usando el backend. Algunas también regeneran capturas dentro de `evidencias/`; si no quieres modificarlas, restáuralas después con `git checkout -- evidencias/`.
+
+Solo la auditoría de accesibilidad (WCAG 2.1 AA en las 11 pantallas, en escritorio y móvil):
+
+```bash
+pnpm exec playwright test tests/accesibilidad_wcag_aa.spec.ts
+```
 
 ---
 
@@ -271,7 +278,8 @@ Verificado el **17/11/2026** en Windows 11 con Python 3.12.10, Node.js 24.15.0, 
 | Opción B en una copia recién clonada (instalación, `seed_data.py`, backend y frontend) | ✅ |
 | `npm run build` del frontend | ✅ |
 | Pruebas del backend | ✅ 49 de 49 |
-| Pruebas E2E con Playwright | ✅ 30 de 30 |
+| Pruebas E2E con Playwright | ✅ 30 de 30 (34 de 34 desde el 18/11, con las pruebas de accesibilidad WCAG 2.1 AA) |
+| Accesibilidad (18/11/2026): Lighthouse en las 11 pantallas y axe en 22 vistas (escritorio y móvil) | ✅ 100 en todas · 0 problemas ([docs/accesibilidad.md](docs/accesibilidad.md)) |
 | Opción A, `docker compose up -d --build` (API, frontend e inicio de sesión con usuario de prueba) | ✅ |
 | Despliegue en la nube (18/11/2026): CORS desde Vercel, inicio de sesión, datos de prueba en la BD y rutas `/`, `/login`, `/dashboard` y `/sesions` | ✅ |
 

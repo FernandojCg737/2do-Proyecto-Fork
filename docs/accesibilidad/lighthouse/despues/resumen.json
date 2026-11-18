@@ -1,0 +1,68 @@
+[
+ {
+  "pantalla": "01-inicio",
+  "ruta": "/",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "02-login",
+  "ruta": "/login",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "03-registro",
+  "ruta": "/register",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "04-recuperar",
+  "ruta": "/recover",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "05-mis-solicitudes",
+  "ruta": "/dashboard?tab=solicitudes",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "06-mis-sesiones",
+  "ruta": "/dashboard?tab=mis-sesiones",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "07-crear-sesion",
+  "ruta": "/new-study",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "08-buscar-sesiones",
+  "ruta": "/sesions",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "09-historial",
+  "ruta": "/historial",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "10-analitica",
+  "ruta": "/analitica",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "11-mis-datos",
+  "ruta": "/mis-datos",
+  "puntaje": 100,
+  "fallidas": []
+ }
+]

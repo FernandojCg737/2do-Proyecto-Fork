@@ -71,9 +71,11 @@ export default function AnaliticaPage() {
       <div className="card shadow-sm border-0 mb-4 overflow-hidden" style={{ borderRadius: "14px" }}>
         <div className="p-3 text-white d-flex justify-content-between align-items-center flex-wrap gap-2" style={{ backgroundColor: "var(--color-panel-dev)" }}>
           <div>
-            <span className="fw-mono text-warning me-2">/analitica</span>
+            {/* Sobre la cabecera oscura se usa color-advertencia (claro): 5.9:1 sobre color-panel-dev */}
+            <span className="fw-mono me-2" style={{ color: "var(--color-advertencia)" }}>/analitica</span>
             <span className="fw-semibold text-white">· StudyMatch</span>
-            <span className="text-muted small ms-2">(solo desarrollo)</span>
+            {/* color-nav-texto en vez de text-muted: el gris oscuro sobre fondo oscuro daba 1.2:1 */}
+            <span className="small ms-2" style={{ color: "var(--color-nav-texto)" }}>(solo desarrollo)</span>
           </div>
           <button
             type="button"
@@ -159,9 +161,11 @@ export default function AnaliticaPage() {
                     </div>
 
                     <div className="progress mb-2" style={{ height: "12px" }}>
+                      {/* aria-label: nombre accesible de cada barra para lectores de pantalla */}
                       <div
                         className="progress-bar bg-success"
                         role="progressbar"
+                        aria-label={`${emb.flujo}: ${emb.tasa_exito}% de éxito`}
                         style={{ width: `${emb.tasa_exito}%` }}
                         aria-valuenow={emb.tasa_exito}
                         aria-valuemin="0"
@@ -170,6 +174,7 @@ export default function AnaliticaPage() {
                       <div
                         className="progress-bar bg-danger"
                         role="progressbar"
+                        aria-label={`${emb.flujo}: ${emb.tasa_caida}% de caída`}
                         style={{ width: `${emb.tasa_caida}%` }}
                         aria-valuenow={emb.tasa_caida}
                         aria-valuemin="0"
@@ -231,7 +236,13 @@ export default function AnaliticaPage() {
                   No hay eventos registrados en la tabla aún. Interactúa solicitando unirte, creando sesiones o cancelando.
                 </div>
               ) : (
-                <div className="d-flex flex-column gap-2" style={{ maxHeight: "380px", overflowY: "auto" }}>
+                <div
+                  className="d-flex flex-column gap-2"
+                  style={{ maxHeight: "380px", overflowY: "auto" }}
+                  tabIndex={0}
+                  role="region"
+                  aria-label="Últimos eventos registrados (lista con desplazamiento)"
+                >
                   {eventos.map((ev) => {
                     const materia = ev.props?.materia || "general";
                     const hora = formatearHora(ev.fecha);

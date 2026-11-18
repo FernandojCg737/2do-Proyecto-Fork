@@ -335,7 +335,9 @@ export default function MisDatosPage() {
               {sesionesOrganizadas.length === 0 ? (
                 <p className="text-muted small fst-italic">No has creado ninguna sesión de estudio.</p>
               ) : (
-                <div className="table-responsive border rounded-3" style={{ maxHeight: "200px" }}>
+                // tabIndex + role="region": la tabla con desplazamiento se puede recorrer con el teclado
+                <div className="table-responsive border rounded-3" style={{ maxHeight: "200px" }} tabIndex={0} role="region" aria-label="Sesiones que organizas">
+
                   <table className="table table-sm table-hover mb-0 small">
                     <thead className="table-light">
                       <tr>
@@ -372,7 +374,8 @@ export default function MisDatosPage() {
               {misInscripciones.length === 0 ? (
                 <p className="text-muted small fst-italic">No tienes solicitudes activas ni pasadas.</p>
               ) : (
-                <div className="table-responsive border rounded-3" style={{ maxHeight: "200px" }}>
+                <div className="table-responsive border rounded-3" style={{ maxHeight: "200px" }} tabIndex={0} role="region" aria-label="Mis solicitudes e inscripciones">
+
                   <table className="table table-sm table-hover mb-0 small">
                     <thead className="table-light">
                       <tr>

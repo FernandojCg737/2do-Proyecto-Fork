@@ -305,7 +305,86 @@ textarea {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 8. AJUSTES RESPONSIVOS EN MÓVIL (<= 576px)                                 */
+/* 8. ACCESIBILIDAD · CONTRASTE AA (WCAG 2.1, mínimo 4.5:1 en texto normal)   */
+/* -------------------------------------------------------------------------- */
+/* Las utilidades de texto de Bootstrap traen colores que no llegan a 4.5:1
+   sobre los fondos claros de la app (Lighthouse/axe: «color-contrast»).
+   Se conectan a los tokens de texto, que sí cumplen AA. */
+:root {
+  --bs-secondary-color: var(--color-texto-secundario);
+}
+
+.text-secondary,
+.text-muted,
+.form-text {
+  color: var(--color-texto-secundario) !important;   /* antes #6c757d: 4.44:1 sobre #f8f9fa */
+}
+
+.text-success {
+  color: var(--color-exito-texto) !important;        /* antes #198754: 4.29:1 sobre #f8f9fa */
+}
+
+.text-danger {
+  color: var(--color-error-texto) !important;        /* antes #dc3545: 3.39:1 sobre #f8d7da */
+}
+
+.text-warning {
+  color: var(--color-advertencia-texto) !important;  /* antes #ffc107: 1.6:1 sobre blanco */
+}
+
+.text-info {
+  color: var(--color-info-texto) !important;         /* antes #0dcaf0: 1.85:1 sobre #f8f9fa */
+}
+
+code {
+  color: var(--color-texto);                          /* antes #d63384: 4.06:1 sobre #fff3cd */
+}
+
+/* Botones de contorno de Bootstrap que no usan el componente Button:
+   el texto y el borde pasan a los tokens -texto (≥ 7:1 sobre blanco). */
+.btn-outline-info,
+.btn-outline-warning,
+.btn-outline-success {
+  --bs-btn-hover-color: var(--color-texto-sobre-color);
+  --bs-btn-active-color: var(--color-texto-sobre-color);
+  --bs-btn-bg: transparent;
+}
+
+.btn-outline-info {
+  --bs-btn-color: var(--color-info-texto);
+  --bs-btn-border-color: var(--color-info-texto);
+  --bs-btn-hover-bg: var(--color-info-texto);
+  --bs-btn-hover-border-color: var(--color-info-texto);
+  --bs-btn-active-bg: var(--color-info-texto);
+  --bs-btn-active-border-color: var(--color-info-texto);
+  --bs-btn-disabled-color: var(--color-info-texto);
+  --bs-btn-disabled-border-color: var(--color-info-texto);
+}
+
+.btn-outline-warning {
+  --bs-btn-color: var(--color-advertencia-texto);
+  --bs-btn-border-color: var(--color-advertencia);
+  --bs-btn-hover-bg: var(--color-advertencia-texto);
+  --bs-btn-hover-border-color: var(--color-advertencia-texto);
+  --bs-btn-active-bg: var(--color-advertencia-texto);
+  --bs-btn-active-border-color: var(--color-advertencia-texto);
+  --bs-btn-disabled-color: var(--color-advertencia-texto);
+  --bs-btn-disabled-border-color: var(--color-advertencia);
+}
+
+.btn-outline-success {
+  --bs-btn-color: var(--color-exito-texto);
+  --bs-btn-border-color: var(--color-exito-texto);
+  --bs-btn-hover-bg: var(--color-exito-texto);
+  --bs-btn-hover-border-color: var(--color-exito-texto);
+  --bs-btn-active-bg: var(--color-exito-texto);
+  --bs-btn-active-border-color: var(--color-exito-texto);
+  --bs-btn-disabled-color: var(--color-exito-texto);
+  --bs-btn-disabled-border-color: var(--color-exito-texto);
+}
+
+/* -------------------------------------------------------------------------- */
+/* 9. AJUSTES RESPONSIVOS EN MÓVIL (<= 576px)                                 */
 /* -------------------------------------------------------------------------- */
 @media (max-width: 576px) {
   .card-body {

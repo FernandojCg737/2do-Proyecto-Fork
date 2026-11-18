@@ -1,0 +1,83 @@
+[
+ {
+  "pantalla": "01-inicio",
+  "ruta": "/",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "02-login",
+  "ruta": "/login",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "03-registro",
+  "ruta": "/register",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "04-recuperar",
+  "ruta": "/recover",
+  "puntaje": 91,
+  "fallidas": [
+   "label (1)"
+  ]
+ },
+ {
+  "pantalla": "05-mis-solicitudes",
+  "ruta": "/dashboard?tab=solicitudes",
+  "puntaje": 91,
+  "fallidas": [
+   "color-contrast (160)"
+  ]
+ },
+ {
+  "pantalla": "06-mis-sesiones",
+  "ruta": "/dashboard?tab=mis-sesiones",
+  "puntaje": 91,
+  "fallidas": [
+   "color-contrast (8)"
+  ]
+ },
+ {
+  "pantalla": "07-crear-sesion",
+  "ruta": "/new-study",
+  "puntaje": 100,
+  "fallidas": []
+ },
+ {
+  "pantalla": "08-buscar-sesiones",
+  "ruta": "/sesions",
+  "puntaje": 95,
+  "fallidas": [
+   "color-contrast (403)"
+  ]
+ },
+ {
+  "pantalla": "09-historial",
+  "ruta": "/historial",
+  "puntaje": 91,
+  "fallidas": [
+   "color-contrast (201)"
+  ]
+ },
+ {
+  "pantalla": "10-analitica",
+  "ruta": "/analitica",
+  "puntaje": 91,
+  "fallidas": [
+   "aria-progressbar-name (8)",
+   "color-contrast (19)"
+  ]
+ },
+ {
+  "pantalla": "11-mis-datos",
+  "ruta": "/mis-datos",
+  "puntaje": 93,
+  "fallidas": [
+   "color-contrast (2)"
+  ]
+ }
+]

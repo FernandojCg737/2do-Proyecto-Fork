@@ -1,4 +1,4 @@
-/**
+﻿/**
  * tokens.css — EL ÚNICO LUGAR DE LA APP CON VALORES DE DISEÑO
  * ============================================================================
  * Generado desde las variables de Figma (colección «Tokens StudyMatch»):
@@ -38,8 +38,8 @@
   --color-advertencia-alerta-texto: #664d03;
 
   /* Estados: error / peligro */
-  --color-error: #ef4444;
-  --color-error-presionado: #dc2626;
+  --color-error: #dc2626;
+  --color-error-presionado: #b91c1c;
   --color-error-fondo: #fee2e2;
   --color-error-fondo-suave: #fef2f2;
   --color-error-texto: #991b1b;
@@ -70,7 +70,7 @@
 
   /* Texto */
   --color-texto: #0f172a;
-  --color-texto-secundario: #64748b;
+  --color-texto-secundario: #475569;
   --color-texto-sobre-color: #ffffff;
 
   /* Bordes */

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 
 /**
  * ============================================================================
@@ -37,7 +37,11 @@ export function AuthCard({ title, subtitle, children }) {
  * Componente Input reutilizable con etiqueta accesible y vinculación htmlFor -> id.
  * Soporta auto-desplazamiento vertical cuando el usuario pulsa en móvil y se abre el teclado.
  */
-export function Input({ label, name, id = name, onFocus, ...props }) {
+export function Input({ label, name, id, onFocus, ...props }) {
+  // Accesibilidad (WCAG 1.3.1 / 4.1.2): todo campo necesita un id para que su <label> lo nombre.
+  // Si no llega ni id ni name (p. ej. en Recuperar contraseña), React genera uno único.
+  const idGenerado = useId();
+  const inputId = id || name || idGenerado;
   /**
    * Manejador de foco adaptado para dispositivos móviles (IHC - Visibilidad y Control):
    * Al pulsar el input o su etiqueta en celulares, aguarda 300ms a que el teclado
@@ -57,10 +61,10 @@ export function Input({ label, name, id = name, onFocus, ...props }) {
   return (
     <div className="mb-3">
       {/* Etiqueta asociada semánticamente al campo para accesibilidad WCAG (al tocarla enfoca el input) */}
-      <label htmlFor={id} className="form-label fw-semibold">{label}</label>
+      <label htmlFor={inputId} className="form-label fw-semibold">{label}</label>
       {/* Campo de entrada con estilos modernos y soporte de autodesplazamiento al enfocar */}
       <input
-        id={id}
+        id={inputId}
         name={name}
         className="form-control"
         onFocus={handleFocus}
