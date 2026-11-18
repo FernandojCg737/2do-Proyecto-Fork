@@ -1,0 +1,2 @@
+# Los scripts de shell siempre con saltos de línea LF (se ejecutan en Linux: Docker / Render)
+*.sh text eol=lf

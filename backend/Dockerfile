@@ -15,6 +15,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 8000
+# Normaliza los saltos de línea del script (por si se editó en Windows con CRLF)
+RUN sed -i 's/\r$//' start.sh
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Render asigna el puerto con la variable PORT (10000 por defecto).
+# docker-compose sobrescribe este comando con su propio "command" y usa el 8000.
+EXPOSE 10000
+
+CMD ["sh", "start.sh"]
