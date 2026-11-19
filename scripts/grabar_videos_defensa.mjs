@@ -256,13 +256,13 @@ const MANUAL_SCRIPT = `
 async function manualPaso(page, badge, texto, pausa = 700) {
   await page.evaluate(({ badge, texto }) => {
     window.__manual_set_step?.(texto, badge);
-  }, { badge, texto }).catch(() => {});
+  }, { badge, texto }).catch(() => { });
   await sleep(pausa);
 }
 
 // Helper: Clic interactivo guiado
 async function manualClick(page, locator, label) {
-  try { await locator.scrollIntoViewIfNeeded(); } catch {}
+  try { await locator.scrollIntoViewIfNeeded(); } catch { }
   await sleep(150);
   const box = await locator.boundingBox().catch(() => null);
   if (box) {
@@ -271,17 +271,17 @@ async function manualClick(page, locator, label) {
 
     await page.evaluate(({ x, y, label }) => {
       window.__manual_move_cursor?.(x, y, label);
-    }, { x: cx, y: cy, label: label || 'Clic' }).catch(() => {});
+    }, { x: cx, y: cy, label: label || 'Clic' }).catch(() => { });
 
-    await locator.evaluate((el) => el.classList.add('manual-target-glow')).catch(() => {});
+    await locator.evaluate((el) => el.classList.add('manual-target-glow')).catch(() => { });
     await sleep(400);
 
     await page.evaluate(({ x, y }) => {
       window.__manual_click_ripple?.(x, y);
-    }, { x: cx, y: cy }).catch(() => {});
+    }, { x: cx, y: cy }).catch(() => { });
     await sleep(180);
 
-    await locator.evaluate((el) => el.classList.remove('manual-target-glow')).catch(() => {});
+    await locator.evaluate((el) => el.classList.remove('manual-target-glow')).catch(() => { });
   }
   await locator.click();
   await sleep(400);
@@ -289,7 +289,7 @@ async function manualClick(page, locator, label) {
 
 // Helper: Escritura interactiva guiada
 async function manualEscribir(page, locator, texto, label, delay = 35) {
-  try { await locator.scrollIntoViewIfNeeded(); } catch {}
+  try { await locator.scrollIntoViewIfNeeded(); } catch { }
   await sleep(150);
   const box = await locator.boundingBox().catch(() => null);
   if (box) {
@@ -298,26 +298,33 @@ async function manualEscribir(page, locator, texto, label, delay = 35) {
 
     await page.evaluate(({ x, y, label }) => {
       window.__manual_move_cursor?.(x, y, label);
-    }, { x: cx, y: cy, label: label || 'Escribir' }).catch(() => {});
+    }, { x: cx, y: cy, label: label || 'Escribir' }).catch(() => { });
 
-    await locator.evaluate((el) => el.classList.add('manual-target-glow')).catch(() => {});
+    await locator.evaluate((el) => el.classList.add('manual-target-glow')).catch(() => { });
     await sleep(350);
 
     await page.evaluate(({ x, y }) => {
       window.__manual_click_ripple?.(x, y);
-    }, { x: cx, y: cy }).catch(() => {});
+    }, { x: cx, y: cy }).catch(() => { });
     await sleep(150);
   }
 
-  await locator.fill('');
-  await locator.pressSequentially(texto, { delay });
-  await locator.evaluate((el) => el.classList.remove('manual-target-glow')).catch(() => {});
+  const type = await locator.getAttribute('type').catch(() => null);
+  if (type === 'date') {
+    await locator.fill(texto);
+  } else {
+    await locator.fill('');
+    await locator.pressSequentially(texto, { delay });
+    // Asegurar que el valor quede 100% exacto
+    await locator.fill(texto);
+  }
+  await locator.evaluate((el) => el.classList.remove('manual-target-glow')).catch(() => { });
   await sleep(300);
 }
 
 // Helper: Selección guiada en combobox
 async function manualSelect(page, locator, valor, label) {
-  try { await locator.scrollIntoViewIfNeeded(); } catch {}
+  try { await locator.scrollIntoViewIfNeeded(); } catch { }
   await sleep(150);
   const box = await locator.boundingBox().catch(() => null);
   if (box) {
@@ -326,16 +333,16 @@ async function manualSelect(page, locator, valor, label) {
 
     await page.evaluate(({ x, y, label }) => {
       window.__manual_move_cursor?.(x, y, label);
-    }, { x: cx, y: cy, label: label || 'Seleccionar' }).catch(() => {});
+    }, { x: cx, y: cy, label: label || 'Seleccionar' }).catch(() => { });
 
-    await locator.evaluate((el) => el.classList.add('manual-target-glow')).catch(() => {});
+    await locator.evaluate((el) => el.classList.add('manual-target-glow')).catch(() => { });
     await sleep(350);
 
     await page.evaluate(({ x, y }) => {
       window.__manual_click_ripple?.(x, y);
-    }, { x: cx, y: cy }).catch(() => {});
+    }, { x: cx, y: cy }).catch(() => { });
     await sleep(150);
-    await locator.evaluate((el) => el.classList.remove('manual-target-glow')).catch(() => {});
+    await locator.evaluate((el) => el.classList.remove('manual-target-glow')).catch(() => { });
   }
   await locator.selectOption(valor);
   await sleep(400);
@@ -346,7 +353,7 @@ async function manualScroll(page, y, label) {
   if (label) {
     await page.evaluate(({ label }) => {
       window.__manual_set_step?.(label, 'EXPLORAR');
-    }, { label }).catch(() => {});
+    }, { label }).catch(() => { });
   }
   await page.evaluate((top) => window.scrollBy({ top, behavior: 'smooth' }), y);
   await sleep(1400);
@@ -360,28 +367,31 @@ async function cambiarUsuario(page, email, password = 'Password123!') {
   const btnLogout = page.getByRole('button', { name: /Cerrar sesión/i }).first();
   if (await btnLogout.isVisible().catch(() => false)) {
     await manualClick(page, btnLogout, 'Clic en "Cerrar sesión"');
-    await sleep(500);
-  } else {
-    await page.goto('http://localhost:5173/login');
-    await sleep(300);
-    await page.evaluate(() => localStorage.clear());
-    await page.reload();
-    await sleep(500);
+    await sleep(600);
   }
-
-  // Esperar pantalla de login
-  await page.waitForURL('**/login', { timeout: 6000 }).catch(() => {});
+  
+  await page.goto('http://localhost:5173/login');
   await sleep(300);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await sleep(500);
+
+  // Esperar inputs de login
+  await page.waitForSelector('input[name="email"]', { timeout: 8000 }).catch(() => {});
+  await sleep(250);
 
   // Escribir credenciales con el cursor guiado
-  const inputEmail = page.getByLabel('Email');
-  const inputPass = page.getByLabel('Password');
+  const inputEmail = page.locator('input[name="email"]');
+  const inputPass = page.locator('input[name="password"]');
   await manualEscribir(page, inputEmail, email, 'Ingresar correo');
   await manualEscribir(page, inputPass, password, 'Ingresar contraseña');
+  await inputEmail.fill(email);
+  await inputPass.fill(password);
+  await sleep(250);
 
   // Clic en Iniciar Sesión y esperar redirección al Dashboard
   await manualClick(page, page.getByRole('button', { name: 'Iniciar Sesion' }), 'Clic en "Iniciar Sesión"');
-  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10000 }).catch(() => {});
+  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10000 }).catch(() => { });
   await sleep(1000);
 }
 
@@ -392,8 +402,8 @@ console.log('=== 1. Preparando entorno y base de datos limpia ===');
 for (const p of [8000, 5173]) {
   if (!(await puertoLibre(p))) {
     console.log(`Liberando puerto ${p}...`);
-    spawnSync('powershell', ['-Command', `Get-Process -Name 'node','python' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue`]);
-    await sleep(2000);
+    spawnSync('powershell', ['-Command', `Get-NetTCPConnection -LocalPort ${p} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`]);
+    await sleep(1500);
   }
 }
 
@@ -402,12 +412,13 @@ const env = { ...process.env, DATABASE_URL: `sqlite:///${db}`, PYTHONUTF8: '1' }
 
 spawnSync(PY, ['seed_data.py'], { cwd: BACKEND, env, stdio: 'inherit' });
 
-const backend = spawn(PY, ['-m', 'uvicorn', 'main:app', '--port', '8000', '--host', '127.0.0.1'], { cwd: BACKEND, env, stdio: 'ignore' });
-const frontend = spawn(process.execPath, [path.join(FRONTEND, 'node_modules', 'vite', 'bin', 'vite.js'), '--port', '5173', '--strictPort'], { cwd: FRONTEND, env: { ...process.env }, stdio: 'ignore' });
+const backend = spawn(PY, ['-m', 'uvicorn', 'main:app', '--port', '8000', '--host', '127.0.0.1'], { cwd: BACKEND, env, stdio: 'inherit' });
+const frontend = spawn(WIN ? 'pnpm.cmd' : 'pnpm', ['run', 'dev', '--port', '5173', '--strictPort'], { cwd: FRONTEND, env: { ...process.env }, shell: WIN, stdio: 'inherit' });
 
 try {
   await esperar('http://127.0.0.1:8000/docs');
   await esperar('http://localhost:5173/');
+  await sleep(2000);
   console.log('✓ Servidores listos: Backend (8000) y Frontend (5173)\n');
 
   const browser = await chromium.launch({ headless: true });
@@ -432,6 +443,7 @@ try {
     await sleep(1500);
     await page.close();
     await context.close();
+    await sleep(600);
 
     const files = fs.readdirSync(tempVideoDir).filter((f) => f.endsWith('.webm'));
     if (!files.length) {
@@ -603,14 +615,14 @@ try {
   await grabarFlujo(
     '03_tarea7_reprogramacion_reconfirmacion',
     'Tarea 7 · Reprogramación Ética y Reconfirmación',
-    'Sesión creada para fecha futura (24/11), organizador posterga al 02/12 con motivo formal y alumna reconfirma.',
+    'Sesión creada para fecha futura (28/11/2026), organizador posterga al 05/12/2026 con motivo formal y alumna reconfirma.',
     { width: 1280, height: 720 },
     async (page) => {
       const ts = Date.now();
       const nombreSesion = `Taller de Usabilidad y Accesibilidad (${ts})`;
 
-      // 1. Carlos crea la sesión con fecha futura inicial: 2026-11-24
-      await manualPaso(page, 'PASO 1', 'Carlos Mendoza programa sesión para el 24/11/2026');
+      // 1. Carlos crea la sesión con fecha futura inicial: 2026-11-28
+      await manualPaso(page, 'PASO 1', 'Carlos Mendoza programa sesión para el 28/11/2026');
       await cambiarUsuario(page, 'carlos.mendoza@studymatch.com');
       await page.goto('http://localhost:5173/new-study');
       await sleep(800);
@@ -618,7 +630,7 @@ try {
       await manualEscribir(page, page.getByLabel('Materia'), 'Interacción Hombre-Computador', 'Materia');
       await manualSelect(page, page.getByLabel('Modalidad'), 'presencial', 'Modalidad');
       await manualEscribir(page, page.getByLabel('cupo'), '3', 'Cupo: 3');
-      await manualEscribir(page, page.getByLabel('fecha'), '2026-11-24', 'Fecha inicial: 2026-11-24');
+      await manualEscribir(page, page.getByLabel('fecha'), '2026-11-28', 'Fecha inicial: 2026-11-28');
       await manualClick(page, page.getByRole('button', { name: 'Crear sesión' }), 'Clic en "Crear sesión"');
       await sleep(1600);
 
@@ -643,35 +655,27 @@ try {
       await manualClick(page, page.getByRole('button', { name: '✓ Aceptar' }).first(), 'Clic en "✓ Aceptar"');
       await sleep(1500);
 
-      // 3. Carlos reprograma la sesión desde /sesions hacia una fecha posterior: 2026-12-02
-      await manualPaso(page, 'PASO 4', 'Carlos solicita reprogramación ética con motivo obligatorio');
-      await page.goto('http://localhost:5173/sesions');
+      // 3. Carlos reprograma la sesión desde el Dashboard hacia una fecha posterior: 2026-12-05
+      await manualPaso(page, 'PASO 4', 'Carlos solicita reprogramación ética desde su panel con motivo obligatorio');
+      await page.goto('http://localhost:5173/dashboard?tab=mis-sesiones');
       await sleep(1200);
-
-      await manualEscribir(page, page.getByLabel('Buscar por nombre'), nombreSesion, 'Buscar taller');
-      await manualClick(page, page.getByRole('button', { name: 'Buscar', exact: true }), 'Clic en "Buscar"');
-      await sleep(1500);
 
       const cardCarlos = page.locator('.card', { hasText: nombreSesion }).first();
       await manualClick(page, cardCarlos.getByRole('button', { name: /Reprogramar sesión/i }), 'Clic en "Reprogramar sesión"');
       await sleep(1000);
 
-      // Llenar nueva fecha y motivo
-      await manualPaso(page, 'PASO 5', 'Establecer nueva fecha (02/12/2026) y justificación académica');
-      await manualEscribir(page, page.locator('#reprog-fecha'), '2026-12-02', 'Nueva fecha: 2026-12-02');
-      await manualEscribir(page, page.locator('#reprog-motivo'), 'Cambio al Laboratorio 4 para pruebas prácticas con lectores de pantalla', 'Motivo del cambio');
+      // Llenar nueva fecha y motivo en el modal
+      await manualPaso(page, 'PASO 5', 'Establecer nueva fecha futura (05/12/2026) y motivo académico');
+      await manualEscribir(page, page.locator('#reprog-fecha-dash'), '2026-12-05', 'Nueva fecha: 2026-12-05');
+      await manualEscribir(page, page.locator('#reprog-motivo-dash'), 'Cambio al Laboratorio 4 para pruebas con lectores de pantalla', 'Motivo del cambio');
       await sleep(1000);
       await manualClick(page, page.getByRole('button', { name: /Confirmar reprogramación/i }), 'Clic en "Confirmar reprogramación"');
       await sleep(2500);
 
-      // 4. Ana ve la notificación con el motivo visible y reconfirma
+      // 4. Ana ve la notificación con el motivo visible y reconfirma en Mis Solicitudes
       await manualPaso(page, 'PASO 6', 'Ana revisa el motivo transparente del cambio y reconfirma asistencia');
       await cambiarUsuario(page, 'ana.torres@studymatch.com');
-      await page.goto('http://localhost:5173/sesions');
-      await sleep(1200);
-
-      await manualEscribir(page, page.getByLabel('Buscar por nombre'), nombreSesion, 'Buscar taller');
-      await manualClick(page, page.getByRole('button', { name: 'Buscar', exact: true }), 'Clic en "Buscar"');
+      await page.goto('http://localhost:5173/dashboard?tab=solicitudes');
       await sleep(1500);
 
       const cardAna = page.locator('.card', { hasText: nombreSesion }).first();
@@ -960,10 +964,12 @@ try {
   console.log(`  - ${path.join(OUT_DIR, 'index.html')}`);
   console.log(`  - ${path.join(PRESENTABLES_DIR, 'index.html')}`);
 
+} catch (err) {
+  console.error("FATAL ERROR EN GRABACIÓN:", err);
 } finally {
   matar(backend);
   matar(frontend);
-  fs.rmSync(db, { force: true });
+  try { fs.rmSync(db, { force: true }); } catch {}
 }
 
 console.log('\n=== ¡Grabación de todos los videos finalizada con éxito! ===');
