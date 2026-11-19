@@ -69,7 +69,16 @@ try {
   await esperar('http://127.0.0.1:8000/docs');
   await esperar('http://localhost:5173/');
   // Argumentos extra (p. ej. `pnpm cobertura tests/tarea9_cancelar_sesion.spec.ts`) se pasan a Playwright.
-  e2e = correr('pnpm', ['exec', 'playwright', 'test', '--reporter=list', ...process.argv.slice(2)], { cwd: ROOT, env: { ...process.env, COBERTURA: '1' } });
+  const argsPlaywright = ['exec', 'playwright', 'test', '--reporter=list,html', ...process.argv.slice(2)];
+  e2e = correr('pnpm', argsPlaywright, {
+    cwd: ROOT,
+    env: {
+      ...process.env,
+      COBERTURA: '1',
+      PLAYWRIGHT_HTML_OPEN: 'never',
+      NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --max-old-space-size=4096`.trim(),
+    },
+  });
 } finally {
   fs.writeFileSync(parada, 'fin');
   await new Promise((r) => { const t = setTimeout(() => { matar(backend); r(); }, 20000); backend.once('exit', () => { clearTimeout(t); r(); }); });
@@ -93,11 +102,27 @@ const dc = correr(fs.existsSync(diffCover) ? diffCover : 'diff-cover', [
 ], { cwd: ROOT });
 correr(fs.existsSync(diffCover) ? diffCover : 'diff-cover', ['coverage/backend/coverage.xml', 'coverage/frontend/cobertura-coverage.xml', `--compare-branch=${RAMA_BASE}`], { cwd: ROOT });
 
+// El reporte E2E (playwright-report/) lleva también la cobertura, como pidió el docente
+const reporteE2E = path.join(ROOT, 'playwright-report');
+if (fs.existsSync(reporteE2E)) {
+  fs.cpSync(path.join(ROOT, 'docs', 'cobertura'), path.join(reporteE2E, 'cobertura'), { recursive: true });
+  fs.writeFileSync(path.join(reporteE2E, 'LEEME.md'), [
+    '# Reporte de pruebas E2E y cobertura',
+    '',
+    '- `index.html`: reporte de Playwright (todas las pruebas E2E). Ábrelo con `pnpm exec playwright show-report`.',
+    '- `cobertura/index.html`: diff-cover, cobertura del código agregado en el fork (backend + frontend).',
+    '- `cobertura/resumen.md`: el mismo resultado en texto.',
+    '',
+    'Se genera con `pnpm cobertura` desde la raíz del repositorio.',
+    '',
+  ].join('\n'));
+}
+
 // Las pruebas E2E regeneran capturas en evidencias/: se restauran las que no estaban modificadas antes
 const nuevas = pngsModificados().filter((f) => !pngsAntes.has(f));
 if (nuevas.length) spawnSync('git', ['checkout', '--', ...nuevas], { cwd: ROOT });
 fs.rmSync(db, { force: true });
 
 console.log(`\nPruebas unitarias: ${unitarias === 0 ? 'OK' : 'con fallos'} · E2E: ${e2e === 0 ? 'OK' : 'con fallos'} · diff-cover: ${dc === 0 ? 'OK' : 'error'}`);
-console.log('Reporte: docs/cobertura/index.html · Resumen: docs/cobertura/resumen.md');
+console.log('Reportes: playwright-report/index.html (E2E) · playwright-report/cobertura/index.html y docs/cobertura/ (cobertura)');
 process.exit(unitarias || e2e || dc ? 1 : 0);

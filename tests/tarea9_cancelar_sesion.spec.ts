@@ -361,6 +361,8 @@ test.describe('Tarea 9 - Cancelar una sesión y Analítica en todo el producto (
   // TEST 3: Telemetría y Panel /analitica con Embudos de Conversión (Parte A)
   // --------------------------------------------------------------------------
   test('3. Telemetría y Panel /analitica: Visualiza embudos, tasas de caída y justificación de diseño IHC', async ({ page }) => {
+    test.setTimeout(90000);
+
     // 1. Iniciar sesión para acceder al panel
     await page.goto('/login');
     await page.getByLabel('Email').fill('carlos.mendoza@studymatch.com');

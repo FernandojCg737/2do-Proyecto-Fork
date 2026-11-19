@@ -63,6 +63,8 @@ for (const [vista, viewport] of [
 ] as const) {
   test.describe(`Accesibilidad WCAG 2.1 AA · ${vista}`, () => {
     test.use({ viewport });
+    // Cada prueba audita 4 o 7 pantallas con axe: con la medición de cobertura activa supera los 30 s por defecto.
+    test.describe.configure({ timeout: 180000 });
 
     test(`Pantallas públicas sin violaciones (${vista})`, async ({ page }) => {
       const violaciones = [];

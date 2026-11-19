@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyMatch · Video Manual Interactivo para Defensa Final</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 24px; line-height: 1.5; }
+    .header { text-align: center; max-width: 900px; margin: 0 auto 32px; }
+    .header h1 { font-size: 28px; margin-bottom: 8px; color: #fff; }
+    .header p { color: var(--text-muted); font-size: 15px; }
+    .badge-info { display: inline-block; background: #312e81; color: #a5b4fc; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; margin-top: 10px; }
+    .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+    @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+    .player-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    video { width: 100%; border-radius: 8px; background: #000; outline: none; aspect-ratio: 16/9; }
+    .video-info { margin-top: 16px; }
+    .video-info h2 { font-size: 20px; color: #fff; margin-bottom: 8px; }
+    .video-info p { color: var(--text-muted); font-size: 14px; margin-bottom: 12px; }
+    .downloads { display: flex; gap: 10px; }
+    .btn-dl { background: var(--primary); color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; }
+    .btn-dl:hover { background: var(--primary-hover); }
+    .playlist { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; max-height: 600px; overflow-y: auto; }
+    .playlist h3 { font-size: 16px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .item { padding: 12px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+    .item:hover { background: rgba(255,255,255,0.05); }
+    .item.active { background: #312e81; border-color: var(--primary); }
+    .item h4 { font-size: 14px; margin-bottom: 4px; color: #fff; }
+    .item p { font-size: 12px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>StudyMatch · Video Manual de Usuario para Defensa</h1>
+    <p>Proyecto 2 · Interacción Hombre-Computador (IHC 2026-2) · Grabaciones con Cursor Visible, Clics Guiados y Banners de Pasos</p>
+    <span class="badge-info">✨ Modo Manual de Usuario Activo: Cada acción, botón y regla está señalizada y explicada</span>
+  </div>
+  <div class="container">
+    <div class="player-card">
+      <video id="reproductor" controls autoplay>
+        <source id="source-mp4" src="01_flujo_principal_login_catalogo.mp4" type="video/mp4">
+        <source id="source-webm" src="01_flujo_principal_login_catalogo.webm" type="video/webm">
+        Tu navegador no soporta reproducción de video HTML5.
+      </video>
+      <div class="video-info">
+        <h2 id="video-titulo">Flujo Principal · Login y Catálogo de Sesiones</h2>
+        <p id="video-desc">Autenticación de usuario con datos semilla, navegación al catálogo y filtrado dinámico de materias.</p>
+        <div class="downloads">
+          <a id="dl-mp4" class="btn-dl" href="01_flujo_principal_login_catalogo.mp4" download>Descargar .MP4</a>
+          <a id="dl-webm" class="btn-dl" style="background:#334155;" href="01_flujo_principal_login_catalogo.webm" download>Descargar .WebM</a>
+        </div>
+      </div>
+    </div>
+    <div class="playlist">
+      <h3>Lista de Reproducción (8 Videos)</h3>
+      
+        <div class="item active" onclick="cargar(0)">
+          <h4>Flujo Principal · Login y Catálogo de Sesiones</h4>
+          <p>Autenticación de usuario con datos semilla, navegación al catálogo y filtra...</p>
+        </div>
+      
+        <div class="item " onclick="cargar(1)">
+          <h4>Tarea 6 · Lista de Espera Transparente (FIFO)</h4>
+          <p>Sesión llena con cupo 1, Brayan entra en espera (Lugar #1), Ana abandona y ...</p>
+        </div>
+      
+        <div class="item " onclick="cargar(2)">
+          <h4>Tarea 7 · Reprogramación Ética y Reconfirmación</h4>
+          <p>Sesión creada para fecha futura (24/11), organizador posterga al 02/12 con ...</p>
+        </div>
+      
+        <div class="item " onclick="cargar(3)">
+          <h4>Tarea 8 · Asistencia y Justificaciones Éticas</h4>
+          <p>Toma de asistencia (presente/ausente), solicitud de justificación por parte...</p>
+        </div>
+      
+        <div class="item " onclick="cargar(4)">
+          <h4>Tarea 9 · Cancelación Responsable y Telemetría</h4>
+          <p>Cancelación formal de sesión con motivo visible para los compañeros y visua...</p>
+        </div>
+      
+        <div class="item " onclick="cargar(5)">
+          <h4>Clase 22 · Erradicación de Patrones Oscuros</h4>
+          <p>Principio de Honestidad: cálculo matemático de disponibilidad real, sin fal...</p>
+        </div>
+      
+        <div class="item " onclick="cargar(6)">
+          <h4>Tarea 10 · Mis Datos y Salida Honesta (La Regla Difícil)</h4>
+          <p>Inspección de expediente, descarga en formatos abiertos (JSON/CSV), intento...</p>
+        </div>
+      
+        <div class="item " onclick="cargar(7)">
+          <h4>Diseño Responsivo · Viewport Móvil (390x844)</h4>
+          <p>Header minimalista, apertura de Menú Hamburguesa drawer, auto-layout vertic...</p>
+        </div>
+      
+    </div>
+  </div>
+  <script>
+    const videos = [{"id":"01_flujo_principal_login_catalogo","titulo":"Flujo Principal · Login y Catálogo de Sesiones","descripcion":"Autenticación de usuario con datos semilla, navegación al catálogo y filtrado dinámico de materias.","webm":"01_flujo_principal_login_catalogo.webm","mp4":"01_flujo_principal_login_catalogo.mp4"},{"id":"02_tarea6_lista_espera_fifo","titulo":"Tarea 6 · Lista de Espera Transparente (FIFO)","descripcion":"Sesión llena con cupo 1, Brayan entra en espera (Lugar #1), Ana abandona y Brayan asciende automáticamente.","webm":"02_tarea6_lista_espera_fifo.webm","mp4":"02_tarea6_lista_espera_fifo.mp4"},{"id":"03_tarea7_reprogramacion_reconfirmacion","titulo":"Tarea 7 · Reprogramación Ética y Reconfirmación","descripcion":"Sesión creada para fecha futura (24/11), organizador posterga al 02/12 con motivo formal y alumna reconfirma.","webm":"03_tarea7_reprogramacion_reconfirmacion.webm","mp4":"03_tarea7_reprogramacion_reconfirmacion.mp4"},{"id":"04_tarea8_asistencia_y_justificaciones","titulo":"Tarea 8 · Asistencia y Justificaciones Éticas","descripcion":"Toma de asistencia (presente/ausente), solicitud de justificación por parte del alumno y resolución con motivo.","webm":"04_tarea8_asistencia_y_justificaciones.webm","mp4":"04_tarea8_asistencia_y_justificaciones.mp4"},{"id":"05_tarea9_cancelacion_y_analitica","titulo":"Tarea 9 · Cancelación Responsable y Telemetría","descripcion":"Cancelación formal de sesión con motivo visible para los compañeros y visualización del panel de embudos en /analitica.","webm":"05_tarea9_cancelacion_y_analitica.webm","mp4":"05_tarea9_cancelacion_y_analitica.mp4"},{"id":"06_clase22_patrones_oscuros_honestidad","titulo":"Clase 22 · Erradicación de Patrones Oscuros","descripcion":"Principio de Honestidad: cálculo matemático de disponibilidad real, sin falsas urgencias ni datos manipulados.","webm":"06_clase22_patrones_oscuros_honestidad.webm","mp4":"06_clase22_patrones_oscuros_honestidad.mp4"},{"id":"07_tarea10_salida_honesta_expediente","titulo":"Tarea 10 · Mis Datos y Salida Honesta (La Regla Difícil)","descripcion":"Inspección de expediente, descarga en formatos abiertos (JSON/CSV), intento de borrado bloqueado y salida honesta.","webm":"07_tarea10_salida_honesta_expediente.webm","mp4":"07_tarea10_salida_honesta_expediente.mp4"},{"id":"08_responsivo_movil_hamburguesa","titulo":"Diseño Responsivo · Viewport Móvil (390x844)","descripcion":"Header minimalista, apertura de Menú Hamburguesa drawer, auto-layout vertical y adaptación a teclado virtual.","webm":"08_responsivo_movil_hamburguesa.webm","mp4":"08_responsivo_movil_hamburguesa.mp4"}];
+    function cargar(idx) {
+      document.querySelectorAll('.item').forEach((el, i) => el.classList.toggle('active', i === idx));
+      const v = videos[idx];
+      document.getElementById('video-titulo').innerText = v.titulo;
+      document.getElementById('video-desc').innerText = v.descripcion;
+      document.getElementById('dl-mp4').href = v.mp4;
+      document.getElementById('dl-webm').href = v.webm;
+      const r = document.getElementById('reproductor');
+      r.src = v.mp4;
+      r.play();
+    }
+  </script>
+</body>
+</html>

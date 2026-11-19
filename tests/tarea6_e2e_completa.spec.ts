@@ -110,8 +110,8 @@ test.describe('Tarea 6 - Suite Completa E2E: StudyMatch y Lista de Espera', () =
 
     // 6. Verificar que la tarjeta específica aparece con los datos exactos
     const tarjeta = page.locator('.card', { has: page.getByRole('heading', { name: tituloSesion }) });
-    await expect(tarjeta).toBeVisible();
-    await expect(tarjeta.getByText('Interacción Hombre-Computador')).toBeVisible();
+    await expect(tarjeta).toBeVisible({ timeout: 15000 });
+    await expect(tarjeta.getByText('Interacción Hombre-Computador')).toBeVisible({ timeout: 15000 });
     await expect(tarjeta.getByText('👑 Organizador')).toBeVisible();
   });
 
@@ -126,6 +126,8 @@ test.describe('Tarea 6 - Suite Completa E2E: StudyMatch y Lista de Espera', () =
   // - El primer estudiante en espera pasa automáticamente a confirmado.
   // ============================================================================
   test('5. Feature Lista de Espera: Sesión llena -> Entra en espera -> Sale confirmado -> Primero en espera pasa a confirmado', async ({ browser }) => {
+    test.setTimeout(90000);
+
     // Generar nombre dinámico con marca de tiempo para asegurar que la sesión sea única e independiente
     const ts = Date.now();
     const nombreSesionEspera = `Taller IHC Cupo 1 - ${ts}`;

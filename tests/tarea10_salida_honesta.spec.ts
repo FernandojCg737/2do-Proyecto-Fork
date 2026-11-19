@@ -73,7 +73,7 @@ test.describe('Tarea 10 · Mis datos y salida honesta (StudyMatch)', () => {
   // TEST 2: Intento bloqueado por la regla de StudyMatch (Por qué y Qué hacer)
   // --------------------------------------------------------------------------
   test('2. Intento bloqueado: La regla de la app bloquea la eliminación si hay sesiones activas sin motivo y explica por qué y qué hacer', async ({ browser, request }) => {
-    test.setTimeout(60000);
+    test.setTimeout(120000);
 
     // Generar credenciales únicas para un organizador nuevo
     const ts = Date.now();
@@ -163,7 +163,7 @@ test.describe('Tarea 10 · Mis datos y salida honesta (StudyMatch)', () => {
   // TEST 3: Eliminación honesta completa, cascada de sesiones y salida de espera
   // --------------------------------------------------------------------------
   test('3. Eliminación honesta completa: Cancela sesiones con motivo visible, limpia listas de espera y desactiva cuenta', async ({ browser, request }) => {
-    test.setTimeout(60000);
+    test.setTimeout(120000);
 
     const ts = Date.now();
     const emailOrg = `org.eliminar.${ts}@studymatch.com`;

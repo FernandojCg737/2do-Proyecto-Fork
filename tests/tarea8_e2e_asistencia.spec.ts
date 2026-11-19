@@ -26,7 +26,7 @@ test.describe('Tarea 8 - Asistencia y Justificación con Estados, Consecuencias 
   // TEST 1: Recorrido completo asignado con todos los estados y actores necesarios
   // ============================================================================
   test('1. Feature Tarea 8: Recorrido completo asignado (Organizador marca presente/ausente -> Ausente justifica -> Organizador resuelve con motivo -> Persistencia y Auditoría)', async ({ browser }) => {
-    test.setTimeout(90000);
+    test.setTimeout(120000);
 
     const timestamp = Date.now();
     const nombreSesion = `Taller Tarea 8 IHC ${timestamp}`;
@@ -256,7 +256,7 @@ test.describe('Tarea 8 - Asistencia y Justificación con Estados, Consecuencias 
   // TEST 2: Restricciones de Seguridad Obligatorias
   // ============================================================================
   test('2. Restricciones de Seguridad: Bloqueo de modificaciones por usuario ajeno (403), validación de estados y motivo obligatorio', async ({ browser, request }) => {
-    test.setTimeout(60000);
+    test.setTimeout(120000);
 
     const timestamp = Date.now();
     const nombreSesion = `Seguridad Tarea 8 IHC ${timestamp}`;

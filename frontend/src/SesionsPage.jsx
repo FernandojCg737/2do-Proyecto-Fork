@@ -499,9 +499,9 @@ export default function SesionsPage() {
                 <div className={`card h-100 shadow-sm border ${esMio ? "border-primary" : ""}`}>
                   <div className="card-body d-flex flex-column">
                     {/* Encabezado con insignias de rol y estado de la solicitud */}
-                    <div className="d-flex justify-content-between align-items-start mb-2">
-                      <span className="badge bg-secondary">{sesion.materia}</span>
-                      <div className="d-flex gap-1 align-items-center">
+                    <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                      <span className="badge bg-secondary text-wrap">{sesion.materia}</span>
+                      <div className="d-flex gap-1 align-items-center flex-wrap ms-auto">
                         {sesion.cancelada && (
                           // TAREA 9: Indicador destacado si la sesión fue cancelada por el organizador
                           <span className="badge bg-danger">🚫 Cancelada</span>
@@ -513,15 +513,15 @@ export default function SesionsPage() {
                           <span className="badge bg-danger">🚫 Cancelada</span>
                         ) : sesion.estado_solicitud === "pendiente_reconfirmacion" ? (
                           // TAREA 7: Insignia de reconfirmación requerida tras reprogramación
-                          <span className="badge bg-warning text-dark">⚠️ Requiere reconfirmación</span>
+                          <span className="badge bg-warning text-dark text-wrap text-start">⚠️ Requiere reconfirmación</span>
                         ) : sesion.estado_solicitud === "pendiente" ? (
-                          <span className="badge bg-warning text-dark">⏳ Solicitud pendiente</span>
+                          <span className="badge bg-warning text-dark text-wrap text-start">⏳ Solicitud pendiente</span>
                         ) : sesion.estado_solicitud === "en_espera" ? (
-                          <span className="badge bg-info text-dark">⏳ En espera (#{sesion.posicion_espera || 1})</span>
+                          <span className="badge bg-info text-dark text-wrap text-start">⏳ En espera (#{sesion.posicion_espera || 1})</span>
                         ) : sesion.estado_solicitud === "aceptada" ? (
-                          <span className="badge bg-success">✅ Confirmado</span>
+                          <span className="badge bg-success text-wrap text-start">✅ Confirmado</span>
                         ) : sesion.estado_solicitud === "rechazada" ? (
-                          <span className="badge bg-danger">❌ Rechazada</span>
+                          <span className="badge bg-danger text-wrap text-start">❌ Rechazada</span>
                         ) : null}
                       </div>
                     </div>
@@ -741,29 +741,32 @@ export default function SesionsPage() {
                         ) : sesion.estado_solicitud === "pendiente_reconfirmacion" ? (
                           // TAREA 7: El estudiante debe reconfirmar o retirarse tras reprogramación
                           <div className="d-flex flex-column gap-2">
-                            <span className="badge bg-warning text-dark py-2">
-                              ⚠️ Sesión reprogramada: requiere reconfirmación
-                            </span>
-                            <div className="small text-muted bg-light p-2 rounded">
-                              {sesion.motivo_reprogramacion ? `Motivo: "${sesion.motivo_reprogramacion}"` : "El organizador actualizó la fecha."} Conservas temporalmente tu cupo.
-                            </div>
-                            <div className="d-flex gap-2">
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-success flex-fill py-2 fw-semibold"
-                                disabled={inscribiendo === sesion.id}
-                                onClick={() => reconfirmarAsistencia(sesion.id)}
-                              >
-                                {inscribiendo === sesion.id ? "Aceptando..." : "✅ Aceptar nueva fecha"}
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-danger flex-fill py-2"
-                                disabled={inscribiendo === sesion.id}
-                                onClick={() => salirDeSesion(sesion.id)}
-                              >
-                                {inscribiendo === sesion.id ? "Saliendo..." : "🚪 Retirarme"}
-                              </button>
+                            <div className="alert alert-warning py-2 px-3 mb-0 border-warning rounded-3 shadow-sm">
+                              <div className="d-flex align-items-center gap-2 mb-1">
+                                <span className="fs-6">⚠️</span>
+                                <strong className="small text-dark">Sesión reprogramada: Requiere reconfirmación</strong>
+                              </div>
+                              <div className="small text-muted mb-2">
+                                {sesion.motivo_reprogramacion ? `Motivo: "${sesion.motivo_reprogramacion}"` : "El organizador actualizó la fecha."} Conservas temporalmente tu cupo.
+                              </div>
+                              <div className="d-flex gap-2 flex-wrap">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-success flex-fill py-2 fw-semibold shadow-sm"
+                                  disabled={inscribiendo === sesion.id}
+                                  onClick={() => reconfirmarAsistencia(sesion.id)}
+                                >
+                                  {inscribiendo === sesion.id ? "Aceptando..." : "✅ Aceptar nueva fecha"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger flex-fill py-2"
+                                  disabled={inscribiendo === sesion.id}
+                                  onClick={() => salirDeSesion(sesion.id)}
+                                >
+                                  {inscribiendo === sesion.id ? "Saliendo..." : "🚪 Retirarme"}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ) : sesion.estado_solicitud === "pendiente" ? (

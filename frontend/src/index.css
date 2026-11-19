@@ -256,6 +256,9 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+  max-width: 100%;
+  white-space: normal !important;
+  text-align: left;
 }
 
 .badge.bg-success, .text-bg-success {

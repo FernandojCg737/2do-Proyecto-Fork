@@ -65,7 +65,7 @@ database/*.db*
 # Playwright
 node_modules/
 /test-results/
-/playwright-report/
+# playwright-report/ se versiona: es el reporte E2E de la entrega (con la cobertura en playwright-report/cobertura/)
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/

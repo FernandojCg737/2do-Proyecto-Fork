@@ -62,7 +62,7 @@ test.describe('Tarea 7 - Reprogramación con Reconfirmación y Mejoras por Feedb
   // ============================================================================
   test('2. Feature Tarea 7: Reprogramar sesion -> Uno reconfirma, otro se retira -> Primero en espera asciende una vez', async ({ browser }) => {
     // Aumentar tiempo límite para permitir los 8 pasos concurrentes entre 4 usuarios reales
-    test.setTimeout(90000);
+    test.setTimeout(120000);
 
     const ts = Date.now();
     const nombreSesion = `Taller Reprogramación IHC - ${ts}`;

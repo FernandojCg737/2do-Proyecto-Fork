@@ -93,7 +93,7 @@ const errorVisible = (page: Page) => expect(page.locator('.alert-danger').first(
 async function tarjeta(page: Page, nombreSesion: string) {
   await page.goto(`/sesions?nombre=${encodeURIComponent(nombreSesion)}`);
   const card = page.locator('.card', { hasText: nombreSesion }).first();
-  await expect(card).toBeVisible();
+  await expect(card).toBeVisible({ timeout: 15000 });
   return card;
 }
 
