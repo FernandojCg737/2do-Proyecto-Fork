@@ -11,7 +11,6 @@ import {
   ModalJustificarAusencia,
 } from "./AsistenciaComponents";
 
-// Diccionario de nombres legibles para los chips de filtros activos
 const nombresFiltros = {
   nombre: "Nombre",
   materia: "Materia",
@@ -22,7 +21,6 @@ const nombresFiltros = {
   disponible: "Disponibilidad",
 };
 
-// Parsea los parámetros URL a un objeto de estado
 function leerFiltros(parametros) {
   return {
     nombre: parametros.get("nombre") || "",
@@ -48,33 +46,28 @@ export default function SesionsPage() {
   const [inscribiendo, setInscribiendo] = useState(null);
   const [actualizacion, setActualizacion] = useState(0);
 
-  // --- TAREA 5: Estados para la gestión de solicitudes por el organizador ---
   const [panelAbierto, setPanelAbierto] = useState(null);
   const [solicitudesPorSesion, setSolicitudesPorSesion] = useState({});
   const [cargandoSolicitudes, setCargandoSolicitudes] = useState(null);
   const [procesandoRespuesta, setProcesandoRespuesta] = useState(null);
 
-  // --- TAREA 7: Estados para la reprogramación de sesiones con reconfirmación ---
   const [modalReprogramar, setModalReprogramar] = useState(null);
   const [reprogFecha, setReprogFecha] = useState("");
   const [reprogMotivo, setReprogMotivo] = useState("");
   const [guardandoReprog, setGuardandoReprog] = useState(false);
 
-  // --- TAREA 8: Estados para el control de asistencia y justificaciones ---
-  const [modalAsistencia, setModalAsistencia] = useState(null); // { id, nombre }
-  const [modalJustificar, setModalJustificar] = useState(null); // { id, nombre }
+  const [modalAsistencia, setModalAsistencia] = useState(null); 
+  const [modalJustificar, setModalJustificar] = useState(null); 
 
-  // --- TAREA 9: Estados para la cancelación formal de sesiones por el organizador ---
-  const [modalCancelar, setModalCancelar] = useState(null); // Sesión seleccionada para cancelar
-  const [motivoCancelacion, setMotivoCancelacion] = useState(""); // Motivo obligatorio con mínimo 5 letras
-  const [cancelando, setCancelando] = useState(false); // Bandera indicadora de proceso asíncrono
+  const [modalCancelar, setModalCancelar] = useState(null); 
+  const [motivoCancelacion, setMotivoCancelacion] = useState(""); 
+  const [cancelando, setCancelando] = useState(false); 
 
   useEffect(() => {
     let activo = true;
     const controlador = new AbortController();
     setFiltros(leerFiltros(new URLSearchParams(consulta)));
 
-    // Carga sesiones y materias desde la API
     async function cargarSesiones() {
       setLoading(true);
       setError("");
@@ -87,7 +80,6 @@ export default function SesionsPage() {
           setSesiones(lista);
           setMaterias(listaMaterias);
 
-          // TAREA 9 (PARTE A): Registrar telemetría de búsquedas o filtros sin resultados (Diapositiva 11/13)
           if (lista.length === 0 && consulta) {
             track("busqueda_sin_resultados", {
               materia: (filtros.materia || "general").toLowerCase(),
@@ -155,11 +147,6 @@ export default function SesionsPage() {
     setParametros(new URLSearchParams());
   }
 
-  // ==============================================================================
-  // --- TAREA 5, 6, 7 & 9: ACCIONES DEL ESTUDIANTE Y ORGANIZADOR ---
-  // ==============================================================================
-
-  // Solicitar unirse o entrar en lista de espera con telemetría de embudo (Diapositiva 11/13)
   async function solicitarUnirse(sesion) {
     const sesionId = typeof sesion === "object" ? sesion.id : sesion;
     const sesionObj = typeof sesion === "object" ? sesion : sesiones.find((s) => s.id === sesionId);
@@ -169,23 +156,21 @@ export default function SesionsPage() {
     setErrorInscripcion("");
     setMensaje("");
 
-    // Diapositiva 11/13: Paso 1 del embudo de solicitud (evento de inicio)
     track("solicitud_iniciada", {
       materia: materiaNombre,
     });
 
     try {
-      // Petición al backend para registrar la solicitud
+
       const respuesta = await apiRequest(`/sesiones/${sesionId}/solicitar`, { method: "POST" });
 
-      // Diapositiva 11/13: Paso final del embudo de solicitud (evento de éxito)
       track("solicitud_enviada", {
         materia: materiaNombre,
       });
 
       setMensaje(respuesta.mensaje || "Solicitud enviada correctamente.");
     } catch (err) {
-      // Diapositiva 11/13: Registro de error que frena la tarea
+
       track("solicitud_fallida", {
         motivo: "error_servidor",
       });
@@ -196,60 +181,54 @@ export default function SesionsPage() {
     }
   }
 
-  // TAREA 9 (PARTE B): Abre el modal para que el organizador confirme la cancelación
   function abrirModalCancelar(sesion) {
-    setModalCancelar(sesion); // Asigna la sesión seleccionada al estado
-    setMotivoCancelacion(""); // Limpia el motivo anterior
-    // Diapositiva 11/13: Evento de inicio del embudo de cancelación
+    setModalCancelar(sesion); 
+    setMotivoCancelacion(""); 
+
     track("cancelacion_sesion_iniciada", {
       sesion_id: sesion.id,
       materia: (sesion.materia || "general").toLowerCase(),
     });
   }
 
-  // TAREA 9 (PARTE B): Envía el motivo y procesa la cancelación formal en el backend
   async function confirmarCancelacionSesion(e) {
-    e.preventDefault(); // Previene la recarga default del formulario HTML
-    if (!modalCancelar) return; // Salvaguarda si no hay sesión seleccionada
+    e.preventDefault(); 
+    if (!modalCancelar) return; 
 
-    // Regla del motivo (mínimo 5 caracteres): el botón «Confirmar cancelación» queda
-    // desactivado hasta cumplirla, y el backend la vuelve a validar.
-    const motivoLimpio = motivoCancelacion.trim(); // Limpia espacios en blanco iniciales y finales
+    const motivoLimpio = motivoCancelacion.trim(); 
 
-    setCancelando(true); // Bloquea el botón e indica procesamiento
-    setErrorInscripcion(""); // Limpia mensajes de error previos
-    setMensaje(""); // Limpia notificaciones previas
+    setCancelando(true); 
+    setErrorInscripcion(""); 
+    setMensaje(""); 
 
     try {
-      // Pantalla: al tocar «Confirmar cancelación» (Diapositiva 7/13)
+
       const respuesta = await apiRequest(`/sesiones/${modalCancelar.id}/cancelar`, {
         method: "POST",
         body: JSON.stringify({ motivo: motivoLimpio }),
       });
 
-      // Solo llega aquí si se guardó con éxito en el backend (Diapositiva 7/13)
       track("sesion_cancelada", {
         sesion_id: modalCancelar.id,
         materia: (modalCancelar.materia || "general").toLowerCase(),
       });
 
       setMensaje(respuesta.mensaje || "Sesión cancelada exitosamente.");
-      setModalCancelar(null); // Cierra el modal de confirmación
-      setMotivoCancelacion(""); // Reinicia el campo de texto
+      setModalCancelar(null); 
+      setMotivoCancelacion(""); 
     } catch (err) {
-      // Diapositiva 11/13: Evento de error reportado por el servidor
+
       track("cancelacion_fallida", {
         sesion_id: modalCancelar.id,
         motivo: "error_servidor",
       });
       setErrorInscripcion(err.message);
     } finally {
-      setCancelando(false); // Restaura estado interactivo
-      setActualizacion((v) => v + 1); // Dispara la recarga de sesiones actualizadas
+      setCancelando(false); 
+      setActualizacion((v) => v + 1); 
     }
   }
 
-  // Salir de la sesión o retirarse de la fila (TAREA 6 & 7: libera cupo y promueve al primero en espera)
   async function salirDeSesion(sesionId) {
     setInscribiendo(sesionId);
     setErrorInscripcion("");
@@ -266,7 +245,6 @@ export default function SesionsPage() {
     }
   }
 
-  // TAREA 7: El estudiante reconfirma su participación en la sesión reprogramada
   async function reconfirmarAsistencia(sesionId) {
     setInscribiendo(sesionId);
     setErrorInscripcion("");
@@ -283,16 +261,14 @@ export default function SesionsPage() {
     }
   }
 
-  // TAREA 7: Abrir el modal para que el organizador reprograme la sesión
   function abrirModalReprogramar(sesion) {
     setModalReprogramar(sesion);
-    // Sugerir fecha siguiente a la actual de la sesión
+
     setReprogFecha("");
     setReprogMotivo("");
     setErrorInscripcion("");
   }
 
-  // TAREA 7: El organizador guarda la reprogramación (cambia fecha y motivo; confirmados pasan a reconfirmación)
   async function guardarReprogramacion(e) {
     e.preventDefault();
     if (!modalReprogramar) return;
@@ -318,7 +294,6 @@ export default function SesionsPage() {
     }
   }
 
-  // Organizador despliega el panel de solicitudes de su sesión
   async function togglePanelSolicitudes(sesionId) {
     if (panelAbierto === sesionId) {
       setPanelAbierto(null);
@@ -338,7 +313,6 @@ export default function SesionsPage() {
     }
   }
 
-  // Responder a una solicitud: aceptar o rechazar
   async function responderSolicitud(sesionId, solicitanteId, decision) {
     setProcesandoRespuesta(`${sesionId}-${solicitanteId}`);
     setErrorInscripcion("");
@@ -369,7 +343,7 @@ export default function SesionsPage() {
 
   return (
     <div>
-      {/* CLASE 20: Navegación de secciones */}
+
       <NavPills activeTab="buscar" />
 
       <div className="d-flex justify-content-between align-items-start align-items-sm-center flex-wrap gap-3 mb-4">

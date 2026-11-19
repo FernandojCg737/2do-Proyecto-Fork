@@ -2,15 +2,6 @@ import React, { useEffect, useState } from "react";
 import { apiRequest } from "./api";
 import NavPills from "./NavPills";
 
-/**
- * TAREA 9 (PARTE A): Panel de Analítica en Todo el Producto (/analitica)
- * Cumple estrictamente con las Diapositivas 10/13 y 11/13:
- * - Embudos por cada flujo principal (inicio -> éxito con caídas intermedias)
- * - Registro y conteo de errores que frenan la tarea
- * - Búsquedas y filtros sin resultados
- * - Detección automática del paso con mayor caída y propuesta de cambio IHC
- * - Consulta canónica: SELECT evento, COUNT(*) FROM eventos GROUP BY evento;
- */
 export default function AnaliticaPage() {
   const [metricas, setMetricas] = useState({
     conteo: { solicitud_iniciada: 0, solicitud_enviada: 0 },
@@ -23,7 +14,6 @@ export default function AnaliticaPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
 
-  // Carga las métricas del servidor ejecutando la agregación SQL
   async function cargarMetricas() {
     setCargando(true);
     setError("");
@@ -39,7 +29,7 @@ export default function AnaliticaPage() {
 
   useEffect(() => {
     cargarMetricas();
-    // Auto-actualización periódica para ver eventos en tiempo real
+
     const intervalo = setInterval(cargarMetricas, 4000);
     return () => clearInterval(intervalo);
   }, []);
@@ -55,21 +45,20 @@ export default function AnaliticaPage() {
   function formatearHora(fechaIso) {
     if (!fechaIso) return "";
     const d = new Date(fechaIso);
-    // Un valor que no es una fecha se muestra tal cual en lugar de «Invalid Date».
+
     if (Number.isNaN(d.getTime())) return String(fechaIso);
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
   return (
     <div className="container py-4">
-      {/* Navegación por píldoras */}
+
       <NavPills activeTab="analitica" />
 
-      {/* Encabezado con estilo de terminal / panel de desarrollo */}
       <div className="card shadow-sm border-0 mb-4 overflow-hidden" style={{ borderRadius: "14px" }}>
         <div className="p-3 text-white d-flex justify-content-between align-items-center flex-wrap gap-2" style={{ backgroundColor: "var(--color-panel-dev)" }}>
           <div>
-            {/* Sobre la cabecera oscura se usa color-advertencia (claro): 5.9:1 sobre color-panel-dev */}
+
             <span className="fw-mono me-2" style={{ color: "var(--color-advertencia)" }}>/analitica</span>
             <span className="fw-semibold text-white">· StudyMatch</span>
             {/* color-nav-texto en vez de text-muted: el gris oscuro sobre fondo oscuro daba 1.2:1 */}
@@ -88,9 +77,8 @@ export default function AnaliticaPage() {
         <div className="card-body p-4 bg-light">
           {error && <div className="alert alert-danger py-2">{error}</div>}
 
-          {/* Tarjetas de Métricas Principales (Diapositiva 10/13) */}
           <div className="row g-3 mb-4">
-            {/* Tarjeta 1: solicitud_iniciada */}
+
             <div className="col-12 col-md-3">
               <div className="card h-100 border-0 shadow-sm p-4 text-center bg-white" style={{ borderRadius: "12px" }}>
                 <div className="display-5 fw-bold text-dark mb-1">{totalIniciadas}</div>
@@ -98,7 +86,6 @@ export default function AnaliticaPage() {
               </div>
             </div>
 
-            {/* Tarjeta 2: solicitud_enviada */}
             <div className="col-12 col-md-3">
               <div className="card h-100 border-0 shadow-sm p-4 text-center bg-white" style={{ borderRadius: "12px" }}>
                 <div className="display-5 fw-bold text-dark mb-1">{totalEnviadas}</div>
@@ -106,7 +93,6 @@ export default function AnaliticaPage() {
               </div>
             </div>
 
-            {/* Tarjeta 3: % que terminan (Fosforescente destacado) */}
             <div className="col-12 col-md-3">
               <div
                 className="card h-100 border-0 shadow-sm p-4 text-center"
@@ -121,7 +107,6 @@ export default function AnaliticaPage() {
               </div>
             </div>
 
-            {/* Tarjeta 4: Búsquedas sin resultados (Diapositiva 11/13) */}
             <div className="col-12 col-md-3">
               <div className="card h-100 border-0 shadow-sm p-4 text-center bg-white" style={{ borderRadius: "12px" }}>
                 <div className="display-5 fw-bold text-warning mb-1">{busquedasVacias}</div>
@@ -159,7 +144,7 @@ export default function AnaliticaPage() {
                     </div>
 
                     <div className="progress mb-2" style={{ height: "12px" }}>
-                      {/* aria-label: nombre accesible de cada barra para lectores de pantalla */}
+
                       <div
                         className="progress-bar bg-success"
                         role="progressbar"
@@ -287,7 +272,6 @@ export default function AnaliticaPage() {
                 </div>
               </div>
 
-              {/* Caja Regla de Privacidad */}
               <div className="card border-0 shadow-sm p-3 bg-white" style={{ borderRadius: "var(--radio-alerta)", borderLeft: "4px solid var(--color-accion)" }}>
                 <span className="badge bg-primary-subtle text-primary text-uppercase fw-bold align-self-start mb-2 px-2 py-1">
                   REGLA IHC · PRIVACIDAD

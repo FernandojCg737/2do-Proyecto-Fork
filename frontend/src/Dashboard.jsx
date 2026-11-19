@@ -10,11 +10,10 @@ import {
 } from "./AsistenciaComponents";
 import { formatearFecha } from "./fechas";
 
-// Formatea marca de tiempo ISO a fecha y hora de Bolivia
 function formatearHora(fechaIso) {
   if (!fechaIso) return "";
   const fecha = new Date(fechaIso);
-  // Un valor que no es una fecha se muestra tal cual en lugar de «Invalid Date».
+
   if (Number.isNaN(fecha.getTime())) return String(fechaIso);
   return fecha.toLocaleDateString("es-BO", {
     day: "2-digit",
@@ -27,37 +26,32 @@ function formatearHora(fechaIso) {
 
 export default function Dashboard({ user }) {
   const [searchParams] = useSearchParams();
-  // Hook para acceder al estado de navegación (ej. mensajes de éxito tras crear una sesión)
+
   const location = useLocation();
-  // CLASE 20: Arquitectura de información - Pestaña activa según navegación
+
   const tabParam = searchParams.get("tab");
   const tabActiva = tabParam === "mis-sesiones" ? "mis-sesiones" : "solicitudes";
 
-  // --- TAREA 5: Estados para Solicitudes del Organizador y del Estudiante ---
   const [solicitudesOrganizador, setSolicitudesOrganizador] = useState([]);
   const [misSolicitudes, setMisSolicitudes] = useState([]);
   const [misSesiones, setMisSesiones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  // Inicializa el mensaje informativo con el estado transferido desde la navegación previa si existe
+
   const [mensaje, setMensaje] = useState(location.state?.mensaje || "");
   const [procesando, setProcesando] = useState(null);
   const [actualizacion, setActualizacion] = useState(0);
 
-  // Panel colapsable de solicitudes por sesión en las tarjetas del organizador
   const [panelAbierto, setPanelAbierto] = useState(null);
 
-  // --- TAREA 7: Estados para Modal de Reprogramación ---
   const [modalReprogramar, setModalReprogramar] = useState(null);
   const [reprogFecha, setReprogFecha] = useState("");
   const [reprogMotivo, setReprogMotivo] = useState("");
   const [guardandoReprog, setGuardandoReprog] = useState(false);
 
-  // --- TAREA 8: Modales de Control de Asistencia y Justificaciones ---
-  const [modalAsistencia, setModalAsistencia] = useState(null); // { id, nombre }
-  const [modalJustificar, setModalJustificar] = useState(null); // { id, nombre }
+  const [modalAsistencia, setModalAsistencia] = useState(null); 
+  const [modalJustificar, setModalJustificar] = useState(null); 
 
-  // --- TAREA 9: Estados para Modal de Cancelación ---
   const [modalCancelar, setModalCancelar] = useState(null);
   const [motivoCancelacion, setMotivoCancelacion] = useState("");
   const [cancelando, setCancelando] = useState(false);
@@ -95,7 +89,6 @@ export default function Dashboard({ user }) {
     };
   }, [actualizacion, user.id]);
 
-  // --- TAREA 5: Responder solicitud (Aceptar o Rechazar) ---
   async function responder(sesionId, solicitanteId, decision) {
     const clave = `${sesionId}-${solicitanteId}`;
     setProcesando(clave);
@@ -115,7 +108,6 @@ export default function Dashboard({ user }) {
     }
   }
 
-  // --- TAREA 6 & 7: Salir de sesión o abandonar lista de espera ---
   async function salirDeSesion(sesionId) {
     setProcesando(`salir-${sesionId}`);
     setError("");
@@ -131,7 +123,6 @@ export default function Dashboard({ user }) {
     }
   }
 
-  // --- TAREA 7: Reconfirmar asistencia tras reprogramación ---
   async function reconfirmarAsistencia(sesionId) {
     setProcesando(`reconfirmar-${sesionId}`);
     setError("");
@@ -147,7 +138,6 @@ export default function Dashboard({ user }) {
     }
   }
 
-  // --- TAREA 7: Guardar reprogramación desde el organizador ---
   async function guardarReprogramacion(e) {
     e.preventDefault();
     if (!modalReprogramar) return;
@@ -169,7 +159,6 @@ export default function Dashboard({ user }) {
     }
   }
 
-  // --- TAREA 9: Confirmar cancelación de sesión ---
   async function confirmarCancelacionSesion(e) {
     e.preventDefault();
     if (!modalCancelar) return;
@@ -198,7 +187,7 @@ export default function Dashboard({ user }) {
   return (
     <div className="row justify-content-center">
       <div className="col-12 col-xl-10">
-        {/* ENCABEZADO DE BIENVENIDA */}
+
         <div className="card border-0 shadow-sm mb-3">
           <div className="card-body p-3 p-md-4">
             <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">

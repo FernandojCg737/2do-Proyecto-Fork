@@ -4,18 +4,6 @@ import { apiRequest } from "./api";
 import { track } from "./analitica";
 import { formatearFechaHora } from "./fechas";
 
-// =============================================================================
-// --- TAREA 8: COMPONENTES DE ASISTENCIA, JUSTIFICACIONES Y AUDITORÍA ---
-// Diseñados bajo principios de Interacción Humano-Computador (IHC):
-// - Feedback inmediato al usuario ante cada cambio de estado
-// - Visibilidad del estado del sistema (Nielsen Heuristic #1)
-// - Prevención de errores con validaciones en cliente y servidor
-// =============================================================================
-
-/**
- * Componente InsigniaAsistencia:
- * Muestra el estado de asistencia y justificación del estudiante de forma clara e interactiva.
- */
 export function InsigniaAsistencia({
   asistencia,
   estadoJustificacion,
@@ -23,7 +11,7 @@ export function InsigniaAsistencia({
   justificacion,
   onAbrirJustificar,
 }) {
-  // Caso 1: Estudiante marcado como PRESENTE
+
   if (asistencia === "presente") {
     return (
       <div className="d-inline-flex align-items-center gap-1">
@@ -34,7 +22,6 @@ export function InsigniaAsistencia({
     );
   }
 
-  // Caso 2: Estudiante marcado como AUSENTE
   if (asistencia === "ausente") {
     return (
       <div className="d-flex flex-column gap-1 align-items-start">
@@ -57,7 +44,6 @@ export function InsigniaAsistencia({
             </span>
           )}
 
-          {/* Botón para presentar justificación si no la ha enviado aún o si fue rechazada */}
           {(!estadoJustificacion || estadoJustificacion === "rechazada") && onAbrirJustificar && (
             <button
               type="button"
@@ -70,7 +56,6 @@ export function InsigniaAsistencia({
           )}
         </div>
 
-        {/* Motivo o detalle de la justificación */}
         {justificacion && (
           <small className="text-muted fst-italic">
             Tu justificación: "{justificacion}"
@@ -106,30 +91,23 @@ export function InsigniaAsistencia({
 export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpdated }) {
   // Estado general de los datos de la sesión traídos desde la API
   const [datos, setDatos] = useState(null);
-  // Indicador de carga inicial
+
   const [cargando, setCargando] = useState(true);
-  // Indicador de guardado en proceso
+
   const [guardando, setGuardando] = useState(false);
-  // Indicador de finalización anticipada de sesión
+
   const [finalizando, setFinalizando] = useState(false);
-  // Mensajes de error y éxito para feedback de usuario (IHC Heurística #1)
+
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
 
-  // Estado local para los toggles de asistencia: { [usuario_id]: 'presente' | 'ausente' }
   const [asistencias, setAsistencias] = useState({});
 
-  // Control de modo: 'lectura' (bloqueado) o 'edicion' (activo)
-  // REGLA: Si la asistencia ya fue tomada por primera vez, se bloquea por defecto (false)
-  // y solo se desbloquea al pulsar el botón "Editar asistencia".
-  // Si ningún alumno tiene asistencia registrada, arranca en modo captura (true).
   const [modoEdicion, setModoEdicion] = useState(false);
 
-  // Estado local para los motivos de respuesta a justificaciones: { [usuario_id]: string }
   const [motivosResolucion, setMotivosResolucion] = useState({});
   const [procesandoJustificacion, setProcesandoJustificacion] = useState(null);
 
-  // Carga los datos de asistencia e historial desde la API
   async function cargarDatos() {
     setCargando(true);
     setError("");
@@ -137,7 +115,6 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
       const resp = await apiRequest(`/sesiones/${sesionId}/asistencia`);
       setDatos(resp);
 
-      // Inicializar el estado de asistencia con los datos guardados en la BD
       const inicial = {};
       let tieneRegistrosPrevios = false;
       resp.participantes.forEach((p) => {
@@ -148,8 +125,6 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
       });
       setAsistencias(inicial);
 
-      // Si ningún participante tiene asistencia, arrancamos en modo captura inicial (true).
-      // Si al menos uno ya tiene asistencia, arrancamos bloqueados en modo lectura (false).
       setModoEdicion(!tieneRegistrosPrevios);
     } catch (err) {
       setError(err.message);
@@ -162,7 +137,6 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
     cargarDatos();
   }, [sesionId]);
 
-  // Permite al organizador dar la sesión por concluida para habilitar la toma de asistencia
   async function finalizarSesionAhora() {
     setFinalizando(true);
     setError("");
@@ -180,7 +154,6 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
     }
   }
 
-  // Maneja el toggle entre Presente y Ausente para un estudiante
   function seleccionarAsistencia(usuarioId, estado) {
     setAsistencias((prev) => ({
       ...prev,
@@ -188,17 +161,14 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
     }));
   }
 
-  // Guarda en bloque el registro o modificación de asistencia
   async function guardarAsistencias(e) {
     e.preventDefault();
     setError("");
     setMensaje("");
 
-    // El formulario solo se muestra cuando hay participantes confirmados (ver más abajo).
-    // Convertir el estado a la lista de items requerida por el backend
     const payload = datos.participantes.map((p) => ({
       usuario_id: p.usuario_id,
-      asistencia: asistencias[p.usuario_id] || "ausente", // Por defecto ausente si no se marcó
+      asistencia: asistencias[p.usuario_id] || "ausente", 
     }));
 
     setGuardando(true);
@@ -209,7 +179,7 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
       });
       setMensaje(res.mensaje || "Asistencia registrada correctamente.");
       await cargarDatos();
-      // Tras guardar exitosamente, bloqueamos los controles y activamos el botón de editar
+
       setModoEdicion(false);
       if (onUpdated) onUpdated();
     } catch (err) {
@@ -219,7 +189,6 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
     }
   }
 
-  // Evalúa y responde una justificación con motivo obligatorio
   async function responderJustificacion(estudianteId, decision) {
     const motivo = (motivosResolucion[estudianteId] || "").trim();
     if (!motivo || motivo.length < 3) {
@@ -249,7 +218,6 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
     }
   }
 
-  // Comprueba si ya existe al menos un alumno con asistencia registrada previamente
   const tieneAsistenciaRegistrada = Boolean(
     datos && datos.participantes.some((p) => p.asistencia !== null && p.asistencia !== undefined)
   );
@@ -265,7 +233,7 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
     >
       <div className="modal-dialog modal-lg modal-dialog-scrollable">
         <div className="modal-content shadow border-0">
-          {/* Encabezado del modal */}
+
           <div className="modal-header bg-primary text-white">
             <h2 className="modal-title h5 fw-bold mb-0" id="modal-asistencia-titulo">
               📋 Control de Asistencia y Justificaciones
@@ -321,9 +289,6 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
                   </div>
                 )}
 
-                {/* ======================================================= */}
-                {/* SECCIÓN 1: REGISTRO Y EDICIÓN DE ASISTENCIA            */}
-                {/* ======================================================= */}
                 <div className="card border mb-4">
                   <div className="card-header bg-light py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h4 className="h6 fw-bold mb-0 text-dark">
@@ -383,7 +348,6 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
                           ))}
                         </div>
 
-                        {/* Botón para habilitar la edición de asistencia si se necesita cambiar un registro */}
                         <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top">
                           <span className="text-muted small">
                             🔒 <strong>Asistencia guardada:</strong> Los controles están protegidos para evitar modificaciones accidentales.
@@ -477,9 +441,6 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
                   </div>
                 </div>
 
-                {/* ======================================================= */}
-                {/* SECCIÓN 2: JUSTIFICACIONES RECIBIDAS DE AUSENTES        */}
-                {/* ======================================================= */}
                 <div className="card border mb-4">
                   <div className="card-header bg-light py-2">
                     <h4 className="h6 fw-bold mb-0 text-dark">
@@ -526,7 +487,6 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
                                 </span>
                               </p>
 
-                              {/* Formulario para resolver la justificación si está pendiente */}
                               {p.estado_justificacion === "pendiente" ? (
                                 <div className="mt-2 pt-2 border-top">
                                   <label
@@ -657,16 +617,11 @@ export function ModalControlAsistencia({ sesionId, sesionNombre, onClose, onUpda
   );
 }
 
-/**
- * ModalJustificarAusencia:
- * Modal interactivo para que el estudiante ausente remita su justificación formal al organizador.
- */
 export function ModalJustificarAusencia({ sesionId, sesionNombre, onClose, onSuccess }) {
   const [justificacion, setJustificacion] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
 
-  // TAREA 9 (PARTE A): Registra inicio del flujo de justificación en el embudo
   useEffect(() => {
     track("justificacion_iniciada", { sesion_id: sesionId });
   }, [sesionId]);
@@ -676,7 +631,7 @@ export function ModalJustificarAusencia({ sesionId, sesionNombre, onClose, onSuc
     const texto = justificacion.trim();
     if (texto.length < 5) {
       setError("La justificación debe tener al menos 5 caracteres explicativos.");
-      // TAREA 9: Registro de error de validación en el embudo
+
       track("justificacion_fallida", { sesion_id: sesionId, motivo: "texto_muy_corto" });
       return;
     }
@@ -684,19 +639,18 @@ export function ModalJustificarAusencia({ sesionId, sesionNombre, onClose, onSuc
     setEnviando(true);
     setError("");
     try {
-      // pantalla: al tocar «Enviar justificación» 1
-      const res = await apiRequest(`/sesiones/${sesionId}/justificar`, { // 2
+
+      const res = await apiRequest(`/sesiones/${sesionId}/justificar`, { 
         method: "POST",
         body: JSON.stringify({ justificacion: texto }),
       });
 
-      // solo llega aquí si se guardó con éxito (Diapositiva 7/13)
-      track("justificacion_enviada", { sesion_id: sesionId }); // 3
+      track("justificacion_enviada", { sesion_id: sesionId }); 
 
       if (onSuccess) onSuccess(res.mensaje);
       onClose();
     } catch (err) {
-      // Error que frena la tarea (Diapositiva 11/13)
+
       track("justificacion_fallida", { sesion_id: sesionId, motivo: "error_servidor" });
       setError(err.message);
     } finally {

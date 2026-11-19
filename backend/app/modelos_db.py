@@ -6,29 +6,15 @@ def fecha_inscripcion_actual():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class Usuario(Base):
-    # Nombre de la tabla de usuarios en la base de datos relacional
     __tablename__ = "usuarios"
 
-    # Identificador único autonumérico del usuario en el sistema
     id = Column(Integer, primary_key=True)
-    # Nombre completo o alias del estudiante registrado
     nombre = Column(String, nullable=False)
-    # Dirección de correo electrónico única para autenticación
     email = Column(String, nullable=False, unique=True)
-    # Hash criptográfico de la contraseña (bcrypt) para almacenamiento seguro
     password_hash = Column(String, nullable=False)
-    # Código temporal para recuperación de contraseña olvidada
     reset_code = Column(String, nullable=False, default="")
 
-    # =========================================================================
-    # TAREA 10: Salida Honesta y Eliminación de Cuenta (Diapositiva 12/16)
-    # =========================================================================
-    # 'activo': Bandera booleana que indica si la cuenta está habilitada.
-    # Cuando el usuario elimina su cuenta, se marca en False para inhabilitar
-    # permanentemente el inicio de sesión sin romper la integridad referencial.
     activo = Column(Boolean, nullable=False, default=True)
-    # 'fecha_eliminacion': Marca temporal exacta (UTC) de cuándo el usuario
-    # solicitó y confirmó la eliminación honesta de su cuenta.
     fecha_eliminacion = Column(DateTime, nullable=True)
 
 class SesionEstudio(Base):
@@ -42,15 +28,10 @@ class SesionEstudio(Base):
     cupo = Column(Integer, nullable=False)
     inscripciones_abiertas = Column(Boolean, nullable=False, default=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    # TAREA 7: Motivo por el cual el organizador reprogramó la sesión (si fue reprogramada)
     motivo_reprogramacion = Column(String, nullable=True)
-    # TAREA 8: Indica si la sesión concluyó explícitamente para habilitar el registro de asistencia
     finalizada = Column(Boolean, nullable=False, default=False)
-    # TAREA 9: Indica si el organizador canceló formalmente la sesión de estudio
     cancelada = Column(Boolean, nullable=False, default=False)
-    # TAREA 9: Motivo obligatorio provisto por el organizador al cancelar la sesión
     motivo_cancelacion = Column(String, nullable=True)
-    # TAREA 9: Marca de tiempo exacta en que se canceló la sesión
     fecha_cancelacion = Column(DateTime, nullable=True)
 
 class Inscripcion(Base):
@@ -59,8 +40,6 @@ class Inscripcion(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), primary_key=True)
     sesion_id = Column(Integer, ForeignKey("sesiones.id"), primary_key=True)
 
-    # --- TAREA 5: Estado de la solicitud (pendiente, aceptada o rechazada) ---
-    # Registra si el estudiante solo envió la solicitud o si el organizador ya la aprobó o rechazó.
     estado = Column(String, nullable=False, default="pendiente")
 
     fecha_inscripcion = Column(
@@ -69,60 +48,36 @@ class Inscripcion(Base):
         default=fecha_inscripcion_actual,
     )
 
-    # --- TAREA 5: Fecha y hora en que el organizador respondió la solicitud ---
-    # Permite persistir la marca temporal exacta de la aceptación o rechazo.
     fecha_respuesta = Column(DateTime, nullable=True)
 
-    # --- TAREA 8: Control de Asistencia y Justificaciones ---
-    # Registra si el estudiante asistió ('presente') o faltó ('ausente') a la sesión
     asistencia = Column(String, nullable=True)
-    # Marca de tiempo en que el organizador registró la asistencia del estudiante
     fecha_asistencia = Column(DateTime, nullable=True)
 
-    # Texto explicativo que el estudiante ausente envía para justificar su inasistencia
     justificacion = Column(String, nullable=True)
-    # Marca de tiempo exacta en que el estudiante remitió su justificación
     fecha_justificacion = Column(DateTime, nullable=True)
 
-    # Estado del trámite de justificación: 'pendiente', 'aceptada' o 'rechazada'
     estado_justificacion = Column(String, nullable=True)
-    # Motivo obligatorio provisto por el organizador al evaluar la justificación
     motivo_respuesta_justificacion = Column(String, nullable=True)
-    # Marca de tiempo en que el organizador resolvió la justificación
     fecha_respuesta_justificacion = Column(DateTime, nullable=True)
 
-
-# --- TAREA 8: Tabla de Auditoría e Historial de Cambios de Asistencia ---
-# Registra de forma inmutable cada transición de estado (quién cambió qué, cuándo y por qué)
 class HistorialCambioAsistencia(Base):
     __tablename__ = "historial_cambios_asistencia"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     sesion_id = Column(Integer, ForeignKey("sesiones.id"), nullable=False)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False) # Estudiante afectado
-    actor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)   # Quien ejecutó la acción
-    tipo_evento = Column(String, nullable=False) # 'registro_asistencia', 'envio_justificacion', 'resolucion_justificacion'
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    actor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    tipo_evento = Column(String, nullable=False)
     estado_anterior = Column(String, nullable=True)
     estado_nuevo = Column(String, nullable=False)
-    detalle = Column(String, nullable=True)      # Justificación del alumno o motivo del organizador
+    detalle = Column(String, nullable=True)
     fecha = Column(DateTime, nullable=False, default=fecha_inscripcion_actual)
 
-
-# ==============================================================================
-# --- CLASE 21: ANALÍTICA DE INTERACCIÓN (TELEMETRÍA Y EMBUDO DE CONVERSIÓN) ---
-# ==============================================================================
-# Modelo de base de datos para almacenar eventos de interacción.
-# Sigue la regla de privacidad de IHC: "Registren la acción, no a la persona".
-# No guarda emails, nombres de usuarios ni descripciones privadas.
 class Evento(Base):
     __tablename__ = "eventos"
 
-    # Identificador único autoincremental de cada evento capturado
     id = Column(Integer, primary_key=True, autoincrement=True)
-    # Nombre del evento en snake_case (ej. 'solicitud_iniciada', 'solicitud_enviada')
     evento = Column(String, nullable=False)
-    # Propiedades mínimas serializadas en formato JSON string (ej. '{"materia": "calculo"}')
     props = Column(String, nullable=False, default="{}")
-    # Marca temporal ISO del suceso (ej. '2026-11-10T21:40:00Z')
     fecha = Column(String, nullable=False)
 

@@ -1,11 +1,6 @@
 
-
-
-// URL del backend. En la nube se define con la variable VITE_API_URL (Vercel);
-// en local, si no existe, se usa el backend de desarrollo.
 export const API_URL = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
 export const TOKEN_KEY = "studymatch_token";
-
 
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem(TOKEN_KEY);

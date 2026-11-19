@@ -9,11 +9,6 @@ import HistorialPage from "./HistorialPage";
 import AnaliticaPage from "./AnaliticaPage";
 import MisDatosPage from "./MisDatosPage";
 
-
-
-
-
-
 function PrivateRoute({user, checking}) {
     if (checking) {
         return <div>Cargando...</div>;
@@ -25,7 +20,6 @@ function PrivateRoute({user, checking}) {
 
     return <Outlet />;
 }
-
 
 export default function AppRoutes({user, checking, onLogin}) {
     return (

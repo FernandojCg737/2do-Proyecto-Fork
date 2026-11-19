@@ -12,11 +12,9 @@ if getattr(sys, "frozen", False):
 else:
     BASE_DIR = Path(__file__).resolve().parents[2]
 
-# Obtener DATABASE_URL del entorno (.env o docker-compose)
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    # Si no se define DATABASE_URL, usar SQLite en la carpeta externa 'database/'
     db_folder = BASE_DIR / "database"
     db_folder.mkdir(parents=True, exist_ok=True)
     DB_PATH = db_folder / "studymatch.db"
@@ -30,19 +28,13 @@ if is_sqlite:
 else:
     engine_kwargs["pool_pre_ping"] = True
 
-# Creación del motor de base de datos
 engine = create_engine(DATABASE_URL, **engine_kwargs)
 
-# Si se configuró PostgreSQL pero el servicio o contenedor Docker no está disponible,
-# se realiza un fallback automático y resiliente a SQLite para permitir pruebas y ejecución local.
 if not is_sqlite:
     try:
-        # Intenta una conexión rápida de prueba
         with engine.connect() as test_conn:
             pass
     except Exception as error_conexion:
-        # Si no responde el servidor PostgreSQL (p. ej. Docker apagado), usa SQLite local.
-        # Se avisa en el log: en la nube (Render) esto indica un DATABASE_URL mal configurado.
         print(
             "[AVISO] No se pudo conectar a PostgreSQL "
             f"({type(error_conexion).__name__}: {error_conexion}). Se usará SQLite local.",
@@ -90,14 +82,12 @@ def inicializar_db():
                 f"ALTER TABLE sesiones ADD COLUMN materia {tipo_materia} NOT NULL DEFAULT 'General'"
             ))
 
-        # TAREA 7: Migración automática de columna 'motivo_reprogramacion' en sesiones
         if "motivo_reprogramacion" not in columnas:
             tipo_str = "VARCHAR(500)" if engine.dialect.name == "postgresql" else "TEXT"
             conexion.execute(text(
                 f"ALTER TABLE sesiones ADD COLUMN motivo_reprogramacion {tipo_str}"
             ))
 
-        # TAREA 8: Migración de columna 'finalizada' en sesiones (indica conclusión de la sesión)
         if "finalizada" not in columnas:
             tipo_bool = "BOOLEAN"
             val_default = "FALSE" if engine.dialect.name == "postgresql" else "0"
@@ -105,8 +95,6 @@ def inicializar_db():
                 f"ALTER TABLE sesiones ADD COLUMN finalizada {tipo_bool} NOT NULL DEFAULT {val_default}"
             ))
 
-        # TAREA 9: Migración de columnas de cancelación en sesiones
-        # cancelada: booleano que indica si la sesión fue suspendida por su organizador
         if "cancelada" not in columnas:
             tipo_bool = "BOOLEAN"
             val_default = "FALSE" if engine.dialect.name == "postgresql" else "0"
@@ -114,14 +102,12 @@ def inicializar_db():
                 f"ALTER TABLE sesiones ADD COLUMN cancelada {tipo_bool} NOT NULL DEFAULT {val_default}"
             ))
 
-        # motivo_cancelacion: texto obligatorio con la justificación del organizador
         if "motivo_cancelacion" not in columnas:
             tipo_str = "VARCHAR(1000)" if engine.dialect.name == "postgresql" else "TEXT"
             conexion.execute(text(
                 f"ALTER TABLE sesiones ADD COLUMN motivo_cancelacion {tipo_str}"
             ))
 
-        # fecha_cancelacion: marca temporal exacta de la cancelación
         if "fecha_cancelacion" not in columnas:
             tipo_dt = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
             conexion.execute(text(
@@ -139,24 +125,18 @@ def inicializar_db():
                 f"ALTER TABLE inscriprciones ADD COLUMN fecha_inscripcion {tipo_dt}"
             ))
 
-        # --- TAREA 5: Migración automática de la columna 'estado' ---
-        # Si la tabla existente no tiene la columna 'estado', se agrega con valor por defecto 'aceptada'
-        # para preservar compatibilidad con los registros previos de la base de datos.
         if "estado" not in columnas_inscripciones:
             tipo_estado = "VARCHAR(20)" if engine.dialect.name == "postgresql" else "TEXT"
             conexion.execute(text(
                 f"ALTER TABLE inscriprciones ADD COLUMN estado {tipo_estado} NOT NULL DEFAULT 'aceptada'"
             ))
 
-        # --- TAREA 5: Migración automática de la columna 'fecha_respuesta' ---
-        # Guarda la marca temporal de cuándo el organizador aceptó o rechazó la solicitud.
         if "fecha_respuesta" not in columnas_inscripciones:
             tipo_dt = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
             conexion.execute(text(
                 f"ALTER TABLE inscriprciones ADD COLUMN fecha_respuesta {tipo_dt}"
             ))
 
-        # --- TAREA 8: Migración de columnas de Asistencia y Justificaciones en inscripciones ---
         if "asistencia" not in columnas_inscripciones:
             tipo_str = "VARCHAR(20)" if engine.dialect.name == "postgresql" else "TEXT"
             conexion.execute(text(
@@ -199,17 +179,11 @@ def inicializar_db():
                 f"ALTER TABLE inscriprciones ADD COLUMN fecha_respuesta_justificacion {tipo_dt}"
             ))
 
-        # =====================================================================
-        # TAREA 10: Migración automática de columnas para Salida Honesta
-        # =====================================================================
-        # Inspecciona las columnas existentes en la tabla 'usuarios'
         columnas_usuarios = [
             columna["name"]
             for columna in inspect(conexion).get_columns("usuarios")
         ]
 
-        # 'activo': Si no existe en la base de datos previa, se añade con valor por defecto True/1
-        # para que todas las cuentas existentes continúen habilitadas normalmente.
         if "activo" not in columnas_usuarios:
             tipo_bool = "BOOLEAN"
             val_default = "TRUE" if engine.dialect.name == "postgresql" else "1"
@@ -217,7 +191,6 @@ def inicializar_db():
                 f"ALTER TABLE usuarios ADD COLUMN activo {tipo_bool} NOT NULL DEFAULT {val_default}"
             ))
 
-        # 'fecha_eliminacion': Columna nullable que guarda la fecha UTC cuando la cuenta se dio de baja.
         if "fecha_eliminacion" not in columnas_usuarios:
             tipo_dt = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
             conexion.execute(text(

@@ -369,7 +369,7 @@ async function cambiarUsuario(page, email, password = 'Password123!') {
     await manualClick(page, btnLogout, 'Clic en "Cerrar sesión"');
     await sleep(600);
   }
-  
+
   await page.goto('http://localhost:5173/login');
   await sleep(300);
   await page.evaluate(() => localStorage.clear());
@@ -377,7 +377,7 @@ async function cambiarUsuario(page, email, password = 'Password123!') {
   await sleep(500);
 
   // Esperar inputs de login
-  await page.waitForSelector('input[name="email"]', { timeout: 8000 }).catch(() => {});
+  await page.waitForSelector('input[name="email"]', { timeout: 8000 }).catch(() => { });
   await sleep(250);
 
   // Escribir credenciales con el cursor guiado
@@ -658,16 +658,17 @@ try {
       // 3. Carlos reprograma la sesión desde el Dashboard hacia una fecha posterior: 2026-12-05
       await manualPaso(page, 'PASO 4', 'Carlos solicita reprogramación ética desde su panel con motivo obligatorio');
       await page.goto('http://localhost:5173/dashboard?tab=mis-sesiones');
-      await sleep(1200);
+      await sleep(1500);
 
-      const cardCarlos = page.locator('.card', { hasText: nombreSesion }).first();
-      await manualClick(page, cardCarlos.getByRole('button', { name: /Reprogramar sesión/i }), 'Clic en "Reprogramar sesión"');
+      const cardCarlos = page.locator('.col', { has: page.getByRole('heading', { name: nombreSesion }) });
+      const btnReprog = cardCarlos.getByRole('button', { name: /Reprogramar sesión/i }).first();
+      await manualClick(page, btnReprog, 'Clic en "Reprogramar sesión"');
       await sleep(1000);
 
       // Llenar nueva fecha y motivo en el modal
       await manualPaso(page, 'PASO 5', 'Establecer nueva fecha futura (05/12/2026) y motivo académico');
       await manualEscribir(page, page.locator('#reprog-fecha-dash'), '2026-12-05', 'Nueva fecha: 2026-12-05');
-      await manualEscribir(page, page.locator('#reprog-motivo-dash'), 'Cambio al Laboratorio 4 para pruebas con lectores de pantalla', 'Motivo del cambio');
+      await manualEscribir(page, page.locator('#reprog-motivo-dash'), 'Cambio al Laboratorio 4 para pruebas prácticas con lectores de pantalla', 'Motivo del cambio');
       await sleep(1000);
       await manualClick(page, page.getByRole('button', { name: /Confirmar reprogramación/i }), 'Clic en "Confirmar reprogramación"');
       await sleep(2500);
@@ -678,8 +679,9 @@ try {
       await page.goto('http://localhost:5173/dashboard?tab=solicitudes');
       await sleep(1500);
 
-      const cardAna = page.locator('.card', { hasText: nombreSesion }).first();
-      await manualClick(page, cardAna.getByRole('button', { name: /Aceptar nueva fecha/i }), 'Clic en "Aceptar nueva fecha"');
+      const cardAna = page.locator('.card', { has: page.getByRole('heading', { name: nombreSesion }) }).first();
+      const btnAceptarFecha = cardAna.getByRole('button', { name: /Aceptar nueva fecha/i }).first();
+      await manualClick(page, btnAceptarFecha, 'Clic en "Aceptar nueva fecha"');
       await sleep(2500);
     }
   );
@@ -969,7 +971,7 @@ try {
 } finally {
   matar(backend);
   matar(frontend);
-  try { fs.rmSync(db, { force: true }); } catch {}
+  try { fs.rmSync(db, { force: true }); } catch { }
 }
 
 console.log('\n=== ¡Grabación de todos los videos finalizada con éxito! ===');

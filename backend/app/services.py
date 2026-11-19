@@ -8,26 +8,19 @@ from app.config import ALGORITHM, SECRET_KEY, TOKEN_EXPIRE_HOURS
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.database import get_db
-from app.repositorio import get_user_by_email # usuarios
+from app.repositorio import get_user_by_email
 from sqlalchemy.orm import Session
-
 
 security = HTTPBearer(auto_error=False)
 
-
-
-# funciones de email y contraseñas
-
 def normalizar_email(email: str) -> str:
     return email.strip().lower()
-
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(
         password.encode("utf-8"),
         bcrypt.gensalt()
     ).decode("utf-8")
-
 
 def verificar_password(password: str, password_hash: str) -> bool:
     try:
@@ -37,9 +30,6 @@ def verificar_password(password: str, password_hash: str) -> bool:
         )
     except ValueError:
         return False
-
-
-# funciones de jwt
 
 def crear_token(email: str) -> str:
     ahora = datetime.now(timezone.utc)
@@ -56,7 +46,6 @@ def crear_token(email: str) -> str:
         SECRET_KEY,
         algorithm=ALGORITHM
     )
-
 
 def obtener_usuario_actual(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -86,7 +75,6 @@ def obtener_usuario_actual(
 
     email = payload.get("sub")
 
-
     if not isinstance(email, str) or not email:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -95,18 +83,12 @@ def obtener_usuario_actual(
 
     usuario = get_user_by_email(db, email)
 
-
     if usuario is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="El usuario de esta sesión ya no existe",
         )
 
-    # =========================================================================
-    # TAREA 10: Inhabilitación total tras eliminación de cuenta (Diapositiva 12/16)
-    # =========================================================================
-    # Si la cuenta fue marcada como inactiva (eliminada), se revocan inmediatamente
-    # todos los tokens JWT emitidos previamente para impedir cualquier acción posterior.
     if hasattr(usuario, "activo") and not usuario.activo:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

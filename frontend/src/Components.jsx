@@ -1,30 +1,18 @@
 import React, { useId } from "react";
 
-/**
- * ============================================================================
- * COMPONENTE AUTHCARD (Tarjeta Contenedora para Formularios)
- * ============================================================================
- * Utilizada en /login, /register, /recover y /new-study.
- * 
- * Principios aplicados de IHC:
- * 1. Centrado Óptimo (Vertical y Horizontal): Mediante `min-vh-75` y flexbox,
- *    el formulario se ubica en el centro de atención visual natural del usuario.
- * 2. Adaptación a Teclado Móvil: Permite scroll fluido y reposicionamiento
- *    automático cuando el teclado virtual del celular se activa.
- */
 export function AuthCard({ title, subtitle, children }) {
   return (
-    // Fila con alineación centrada tanto horizontal (justify-content-center) como vertical (align-items-center)
+
     <div className="row justify-content-center align-items-center" style={{ minHeight: "75vh" }}>
-      {/* Columna responsiva: ocupa todo el ancho en móvil (col-12) y se ajusta proporcionalmente en pantallas mayores */}
+
       <div className="col-12 col-sm-10 col-md-7 col-lg-5 col-xl-4 my-3">
         <div className="card border-0 shadow-sm auth-card">
           <div className="card-body p-4 p-md-5">
-            {/* Título principal del formulario */}
+
             <h1 className="h3 fw-bold mb-1">{title}</h1>
             {/* Subtítulo explicativo opcional */}
             {subtitle && <p className="text-secondary small mb-4">{subtitle}</p>}
-            {/* Contenido inyectado (inputs, botones, alertas) */}
+
             {children}
           </div>
         </div>
@@ -33,33 +21,24 @@ export function AuthCard({ title, subtitle, children }) {
   );
 }
 
-/**
- * Componente Input reutilizable con etiqueta accesible y vinculación htmlFor -> id.
- * Soporta auto-desplazamiento vertical cuando el usuario pulsa en móvil y se abre el teclado.
- */
 export function Input({ label, name, id, onFocus, ...props }) {
-  // Accesibilidad (WCAG 1.3.1 / 4.1.2): todo campo necesita un id para que su <label> lo nombre.
-  // Si no llega ni id ni name (p. ej. en Recuperar contraseña), React genera uno único.
+
   const idGenerado = useId();
   const inputId = id || name || idGenerado;
-  /**
-   * Manejador de foco adaptado para dispositivos móviles (IHC - Visibilidad y Control):
-   * Al pulsar el input o su etiqueta en celulares, aguarda 300ms a que el teclado
-   * virtual se despliegue y centra suavemente el campo en la ventana visible.
-   */
+
   const handleFocus = (event) => {
     if (typeof window !== "undefined" && window.innerWidth <= 768) {
       setTimeout(() => {
         event.target.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 300);
     }
-    // Respeta un onFocus propio si la pantalla que usa el campo lo define.
+
     onFocus?.(event);
   };
 
   return (
     <div className="mb-3">
-      {/* Etiqueta asociada semánticamente al campo para accesibilidad WCAG (al tocarla enfoca el input) */}
+
       <label htmlFor={inputId} className="form-label fw-semibold">{label}</label>
       {/* Campo de entrada con estilos modernos y soporte de autodesplazamiento al enfocar */}
       <input

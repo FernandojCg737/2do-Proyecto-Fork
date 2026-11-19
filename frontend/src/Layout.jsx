@@ -1,43 +1,25 @@
-// Importación de hooks de React para navegación y estado reactivo
+
 import { useState } from "react";
-// Importación de componentes de React Router DOM para enlaces y detección de ruta activa
+
 import { Link, useLocation, useNavigate } from "react-router-dom";
-// Importación de cliente HTTP y clave del token JWT de sesión
+
 import { apiRequest, TOKEN_KEY } from "./api";
 
-/**
- * ============================================================================
- * COMPONENTE LAYOUT (Encabezado y Navegación Responsiva StudyMatch)
- * ============================================================================
- * 
- * Principios de Diseño IHC aplicados:
- * 1. Fila Única en Escritorio: En resoluciones >= 992px todo el menú (Logo, 6 enlaces
- *    principales, saludo y botón de cierre) se distribuye fluidamente en UNA SOLA FILA
- *    sin saltos de línea ni elementos que caigan debajo.
- * 2. Simplicidad Móvil: En pantallas pequeñas (< 992px), el encabezado solo muestra
- *    el logo a la izquierda, y a la derecha una lupa (🔍) junto al botón de menú (☰).
- * 3. Estilo de Botones Rectangulares Suaves: Botones modernos con border-radius de 8px
- *    (estilo Linear/GitHub), abandonando la estética circular o de burbuja.
- * 4. Eliminación de Redundancia: No hay barras flotantes duplicadas en las páginas.
- */
 export default function Layout({ user, onLogout, children }) {
-  // Hook para redireccionar tras cerrar sesión
+
   const navigate = useNavigate();
-  // Hook para conocer la URL actual y resaltar el enlace activo
+
   const location = useLocation();
-  // Estado booleano para controlar la apertura/cierre del menú hamburguesa en móvil
+
   const [menuAbierto, setMenuAbierto] = useState(false);
 
-  /**
-   * Cierra la sesión del usuario tanto en el backend como en el almacenamiento local.
-   */
   async function handleLogout() {
     try {
       if (localStorage.getItem(TOKEN_KEY)) {
         await apiRequest("/logout", { method: "POST" });
       }
     } catch {
-      // Si la API falla, eliminamos el token igualmente por seguridad
+
     } finally {
       localStorage.removeItem(TOKEN_KEY);
       onLogout();
@@ -45,9 +27,6 @@ export default function Layout({ user, onLogout, children }) {
     }
   }
 
-  /**
-   * Determina si una ruta o parámetro de pestaña coincide con la ubicación actual.
-   */
   const esRutaActiva = (ruta, tabRequerida = null) => {
     if (location.pathname !== ruta) return false;
     if (tabRequerida) {
@@ -60,13 +39,10 @@ export default function Layout({ user, onLogout, children }) {
 
   return (
     <>
-      {/* Barra de navegación superior fija en una sola fila fluida */}
+
       <nav className="navbar navbar-dark bg-dark shadow-sm sticky-top py-2">
         <div className="container-fluid px-3 px-xl-4 d-flex align-items-center justify-content-between flex-nowrap">
-          
-          {/* ================================================================ */}
-          {/* LOGOTIPO DE LA APLICACIÓN (Extremo izquierdo)                   */}
-          {/* ================================================================ */}
+
           <Link
             className="navbar-brand fw-bold d-flex align-items-center gap-2 m-0 flex-shrink-0 text-decoration-none"
             to={user ? "/dashboard" : "/"}

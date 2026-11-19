@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyMatch · Defensa Proyecto 2 IHC (Diapositivas de Exposición)</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --primary: #4f46e5;
+      --accent: #6366f1;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .slide-viewport {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 60px;
+    }
+    .slide {
+      display: none;
+      width: 100%;
+      max-width: 1280px;
+      height: 100%;
+      max-height: 720px;
+      background: radial-gradient(circle at 50% 25%, #1e1b4b 0%, #0f172a 85%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+      animation: fadeIn 0.3s ease-out;
+      position: relative;
+    }
+    .slide.active {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .tag {
+      align-self: flex-start;
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      color: #fff;
+      padding: 5px 16px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      border: 1px solid #818cf8;
+    }
+    h1.slide-title {
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    p.slide-sub {
+      color: var(--text-muted);
+      font-size: 15px;
+      margin-bottom: 24px;
+    }
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      flex: 1;
+    }
+    .grid-cards.two-cols {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .card-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-box h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-box ul {
+      list-style: none;
+    }
+    .card-box li {
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 8px;
+      position: relative;
+      padding-left: 16px;
+    }
+    .card-box li::before {
+      content: "•";
+      color: var(--accent);
+      position: absolute;
+      left: 0;
+      font-weight: bold;
+    }
+    .cover-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+      height: 100%;
+    }
+    .cover-info h2 {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff 40%, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .cover-info p {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .badge-meta {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--success);
+      color: #6ee7b7;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.6;
+    }
+    /* Video Slide */
+    .video-slide-layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      flex: 1;
+      height: calc(100% - 100px);
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      background: #000;
+      outline: none;
+      object-fit: contain;
+    }
+    .chapter-list {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .chapter-list h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .chapter-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: flex;
+      gap: 8px;
+    }
+    .chapter-item strong {
+      color: var(--accent);
+    }
+    /* Footer controls */
+    .footer-bar {
+      height: 60px;
+      background: rgba(15, 23, 42, 0.95);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 40px;
+    }
+    .btn-nav {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-nav:hover {
+      background: var(--accent);
+    }
+    .slide-counter {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .timer-badge {
+      background: #312e81;
+      color: #a5b4fc;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="slide-viewport">
+    
+    <!-- SLIDE 1: PORTADA -->
+    <div class="slide active" id="slide-1">
+      <div class="cover-layout">
+        <div class="cover-info">
+          <div class="tag" style="background: rgba(99, 102, 241, 0.2); border: 1px solid var(--accent); color: #c7d2fe;">🏛️ UAGRM · FICCT · ING. EN SISTEMAS / INFORMÁTICA</div>
+          <div class="tag" style="margin-left: 6px;">DEFENSA PROYECTO 2 · IHC 2026-2</div>
+          <h2>StudyMatch: Plataforma Académica Colaborativa</h2>
+          <p>Diseño Centrado en el Usuario · Tokens Semánticos Figma ↔ CSS · Erradicación Demostrable de Patrones Oscuros (Clase 22) · Accesibilidad Universal WCAG 2.1 AA (100/100 Lighthouse).</p>
+          <div class="badge-meta">
+            ⏱️ <strong>Defensa Oficial de Proyecto (Límite: 10 Minutos)</strong><br>
+            🏛️ Facultad de Ciencias de la Computación y Telecomunicaciones (FICCT - UAGRM)<br>
+            👨‍💻 Expositor: Fernando Calani García · 100% diff-cover · 39 tests E2E
+          </div>
+        </div>
+        <div style="text-align: center;">
+          <img src="videos_defensa/poster_video.png" alt="StudyMatch Logo" style="max-width: 100%; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: PROBLEMA Y REGLAS ÉTICAS -->
+    <div class="slide" id="slide-2">
+      <div class="tag">ARQUITECTURA DE INTERACCIÓN</div>
+      <h1 class="slide-title">Problema Real y Reglas Éticas de Interacción</h1>
+      <p class="slide-sub">Superación de la desorganización de grupos informales mediante contratos de interacción transparentes y predecibles.</p>
+      <div class="grid-cards">
+        <div class="card-box">
+          <h3>⏳ Lista de Espera FIFO</h3>
+          <ul>
+            <li><strong>Problema:</strong> Asignación arbitraria de cupos sin criterios objetivos.</li>
+            <li><strong>Regla Tarea 6:</strong> Fila ordinal estricta (Lugar #1, #2).</li>
+            <li><strong>Ascenso Automático:</strong> Si un participante confirmado abandona, el primero en espera asciende automáticamente.</li>
+            <li><strong>Visibilidad en tiempo real:</strong> Contador público y honesto.</li>
+          </ul>
+        </div>
+        <div class="card-box">
+          <h3>📅 Reprogramación Ética</h3>
+          <ul>
+            <li><strong>Problema:</strong> Cambios repentinos de fecha que perjudican a inscritos.</li>
+            <li><strong>Regla Tarea 7:</strong> Motivo académico obligatorio y fecha estrictamente futura.</li>
+            <li><strong>Reconfirmación:</strong> Los estudiantes conservan temporalmente su plaza pero deben reconfirmar.</li>
+            <li><strong>Bloqueo Ético:</strong> Se impide otra reprogramación mientras haya reconfirmaciones pendientes.</li>
+          </ul>
+        </div>
+        <div class="card-box">
+          <h3>🛡️ Asistencia & Salida</h3>
+          <ul>
+            <li><strong>Tarea 8:</strong> Control de asistencia inmutable y evaluación ética de inasistencias con motivo.</li>
+            <li><strong>Tarea 9:</strong> Cancelación formal con motivo público obligatorio a los postulantes.</li>
+            <li><strong>Tarea 10 (Regla Difícil):</strong> Expediente en JSON/CSV y bloqueo de eliminación si hay compromisos activos.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: FIGMA, TOKENS Y ACCESIBILIDAD -->
+    <div class="slide" id="slide-3">
+      <div class="tag">SISTEMA DE DISEÑO Y ACCESIBILIDAD</div>
+      <h1 class="slide-title">Diseño en Figma y Calidad WCAG 2.1 AA</h1>
+      <p class="slide-sub">Tokens semánticos sincronizados al 100% y puntuación perfecta (100/100) en Lighthouse.</p>
+      <div class="grid-cards two-cols">
+        <div class="card-box">
+          <h3>🎨 Tokens Semánticos (Figma ↔ CSS)</h3>
+          <ul>
+            <li><strong>Mapeo 1:1:</strong> Variables de Figma traducidas directo a <code>tokens.css</code>.</li>
+            <li><strong>Cero colores fijos:</strong> Ningún color hexadecimal hardcodeado en React.</li>
+            <li><strong>Modo Claro y Oscuro:</strong> Alternancia dinámica instantánea y fluida.</li>
+          </ul>
+        </div>
+        <div class="card-box">
+          <h3>♿ Accesibilidad WCAG 2.1 AA</h3>
+          <ul>
+            <li><strong>100/100 Google Lighthouse:</strong> Puntuación máxima en accesibilidad.</li>
+            <li><strong>Contraste &gt; 4.5:1:</strong> Legibilidad verificada para todo usuario.</li>
+            <li><strong>Navegación por Teclado:</strong> Foco visual visible (outline 2px) en cada control.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: VIDEO DE DEMOSTRACIÓN (6:43 min) -->
+    <div class="slide" id="slide-4">
+      <div class="tag">DEMOSTRACIÓN INTERACTIVA (06:43 MIN)</div>
+      <h1 class="slide-title">Demostración Integral en Video (Todos los Flujos)</h1>
+      <p class="slide-sub">Grabación interactiva estilo manual de usuario con cursor guiado, clics señalizados y separadores de título.</p>
+      <div class="video-slide-layout">
+        <video controls poster="videos_defensa/poster_video.png">
+          <source src="videos_defensa/video_defensa_completo.mp4" type="video/mp4">
+          Tu navegador no soporta reproducción de video HTML5.
+        </video>
+        <div class="chapter-list">
+          <h4>Capítulos del Video</h4>
+          <div class="chapter-item"><strong>01</strong> Flujo Principal · Login y Catálogo</div>
+          <div class="chapter-item"><strong>02</strong> Tarea 6 · Lista de Espera FIFO</div>
+          <div class="chapter-item"><strong>03</strong> Tarea 7 · Reprogramación Ética</div>
+          <div class="chapter-item"><strong>04</strong> Tarea 8 · Asistencia y Justificaciones</div>
+          <div class="chapter-item"><strong>05</strong> Tarea 9 · Cancelación y Analítica</div>
+          <div class="chapter-item"><strong>06</strong> Clase 22 · Erradicación Patrones Oscuros</div>
+          <div class="chapter-item"><strong>07</strong> Tarea 10 · Salida Honesta y Expediente</div>
+          <div class="chapter-item"><strong>08</strong> Diseño Responsivo Móvil (390px)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: PRINCIPIOS DE INTERACCIÓN Y ÉTICA -->
+    <div class="slide" id="slide-5">
+      <div class="tag">PRINCIPIOS DE DISEÑO E INTERACCIÓN</div>
+      <h1 class="slide-title">Leyes de Interacción y Erradicación de Patrones Oscuros</h1>
+      <p class="slide-sub">Aplicación rigurosa de las leyes de Fitts, Hick y el Principio de Honestidad de la Clase 22.</p>
+      <div class="grid-cards two-cols">
+        <div class="card-box">
+          <h3>🧠 Leyes de Interacción Humana</h3>
+          <ul>
+            <li><strong>Ley de Fitts:</strong> Objetivos de clic de al menos 44px de alto con padding táctil ergonómico.</li>
+            <li><strong>Ley de Hick:</strong> Reducción de carga mental con filtros segmentados (materia, modalidad, periodo).</li>
+            <li><strong>Heurística #1 (Visibilidad del Estado):</strong> Alertas y badges contextuales inmediatos.</li>
+            <li><strong>Heurística #3 (Control del Usuario):</strong> Botones claros de cancelación y escape sin callejones sin salida.</li>
+          </ul>
+        </div>
+        <div class="card-box">
+          <h3>⚖️ Principio de Honestidad (Clase 22)</h3>
+          <ul>
+            <li><strong>Cero Falsa Urgencia:</strong> No se inventan contadores psicológicos ni mensajes manipuladores.</li>
+            <li><strong>Cálculo Real:</strong> Cupos disponibles computados honestamente en backend: <code>cupo - inscritos</code>.</li>
+            <li><strong>Salida Honesta (Tarea 10):</strong> Sin trabas para darse de baja; exportación de datos en JSON y CSV.</li>
+            <li><strong>Telemetría Ética (/analitica):</strong> Registro de eventos y embudos sin rastreo invasivo.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: RESULTADOS Y CONCLUSIÓN -->
+    <div class="slide" id="slide-6">
+      <div class="tag">VERIFICACIÓN Y CONCLUSIONES</div>
+      <h1 class="slide-title">Resultados Técnicos, Cobertura y Conclusiones</h1>
+      <p class="slide-sub">Verificación formal automatizada y cierre de la defensa.</p>
+      <div class="grid-cards two-cols">
+        <div class="card-box">
+          <h3>🧪 Cobertura de Pruebas (100% diff-cover)</h3>
+          <ul>
+            <li><strong>100% de Cobertura</strong> sobre todo el código implementado en el Fork.</li>
+            <li><strong>39 pruebas E2E automatizadas</strong> con Playwright (casos felices, casos límite y errores del servidor).</li>
+            <li>Pruebas de concurrencia multi-usuario para garantizar la solidez del algoritmo FIFO.</li>
+            <li>Reportes HTML listos para auditoría en <code>docs/cobertura/index.html</code>.</li>
+          </ul>
+        </div>
+        <div class="card-box">
+          <h3>🎯 Conclusiones de la Defensa</h3>
+          <ul>
+            <li>Plataforma académica funcional, accesible y construida con rigor ético.</li>
+            <li>Paridad 1:1 con el diseño del sistema en Figma y tokens semánticos.</li>
+            <li>Tiempo de defensa: Cumplido estrictamente dentro de los 10 minutos.</li>
+            <li><strong>¡Muchas gracias por su atención!</strong><br>Espacio abierto para preguntas del docente y tribunal.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CONTROL BAR -->
+  <div class="footer-bar">
+    <div class="timer-badge" id="timer">⏱️ Tiempo: 00:00 / 10:00</div>
+    <div class="slide-counter" id="slide-counter">Diapositiva 1 de 6</div>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn-nav" onclick="prevSlide()">◀ Anterior</button>
+      <button class="btn-nav" onclick="nextSlide()">Siguiente ▶</button>
+    </div>
+  </div>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 6;
+
+    function showSlide(n) {
+      document.querySelectorAll('.slide').forEach((s) => s.classList.remove('active'));
+      const target = document.getElementById(`slide-${n}`);
+      if (target) {
+        target.classList.add('active');
+        currentSlide = n;
+        document.getElementById('slide-counter').innerText = `Diapositiva ${currentSlide} de ${totalSlides}`;
+      }
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) showSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) showSlide(currentSlide - 1);
+    }
+
+    // Navegación por teclado
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      }
+    });
+
+    // Cronómetro de defensa (10 minutos)
+    let seconds = 0;
+    setInterval(() => {
+      seconds++;
+      const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const sec = (seconds % 60).toString().padStart(2, '0');
+      const timerEl = document.getElementById('timer');
+      timerEl.innerText = `⏱️ Tiempo: ${min}:${sec} / 10:00`;
+      if (seconds > 600) {
+        timerEl.style.background = '#dc2626';
+        timerEl.style.color = '#fff';
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

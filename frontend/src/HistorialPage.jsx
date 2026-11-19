@@ -12,13 +12,12 @@ export default function HistorialPage() {
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [actualizacion, setActualizacion] = useState(0);
-  // TAREA 8: Modal para presentar justificación desde Mi historial
+
   const [modalJustificar, setModalJustificar] = useState(null);
 
   useEffect(() => {
     let activo = true;
 
-    // Consulta el historial cronológico de inscripciones y solicitudes del usuario
     async function cargarHistorial() {
       setLoading(true);
       setError("");
@@ -41,7 +40,7 @@ export default function HistorialPage() {
 
   return (
     <div>
-      {/* CLASE 20: Navegación de secciones */}
+
       <NavPills activeTab="historial" />
 
       <div className="d-flex justify-content-between align-items-start align-items-sm-center flex-wrap gap-3 mb-4">

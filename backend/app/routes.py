@@ -66,7 +66,6 @@ from app.services import (
 
 router = APIRouter()
 
-
 def validar_password(password):
     if not password:
         raise HTTPException(
@@ -79,7 +78,6 @@ def validar_password(password):
             detail="La contraseña admite hasta 72 bytes."
         )
 
-
 @router.post("/registro")
 def registrar_usuario(data: Registro, db: Session = Depends(get_db)):
     email = normalizar_email(data.email)
@@ -89,59 +87,49 @@ def registrar_usuario(data: Registro, db: Session = Depends(get_db)):
             status_code=400, 
             detail="El nombre es obligatorio."
         )
-    
+
     if not email or "@" not in email:
         raise HTTPException(status_code=400, detail="Ingresa un correo válido.")
-    
+
     validar_password(data.password)
 
     if get_user_by_email(db, email):
         raise HTTPException(status_code=409, detail="El correo ya está registrado.")
-    
+
     try:
         usuario = guardar_usuario(db, data.nombre, email, hash_password(data.password))
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail="El correo ya está registrado.")
-    
-    return {"mensaje": "Cuenta registrada correctamente.", "id": usuario.id}
 
+    return {"mensaje": "Cuenta registrada correctamente.", "id": usuario.id}
 
 @router.post("/login")
 def iniciar_sesion(data: Login, db: Session = Depends(get_db)):
-    # Normalizar dirección de correo para evitar discrepancias de mayúsculas
     email = normalizar_email(data.email)
-    # Buscar al usuario por correo en la base de datos
     usuario = get_user_by_email(db, email)
 
-    # Validar que el usuario exista y que la contraseña coincida con el hash
     if not usuario or not verificar_password(data.password, usuario.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Correo o contraseña incorrectos",
         )
 
-    # =========================================================================
-    # TAREA 10: Inhabilitación total tras eliminación de cuenta (Diapositiva 12/16)
-    # 'Después de eliminarla, esa cuenta no puede iniciar sesión.'
-    # =========================================================================
     if hasattr(usuario, "activo") and not usuario.activo:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Esta cuenta ha sido eliminada permanentemente y no puede iniciar sesión.",
         )
-    
+
     return {
         "mensaje": "Inicio de sesión correcto.",
         "token": crear_token(email),
         "usuario": {"id": usuario.id, "nombre": usuario.nombre, "email": usuario.email},
     }
 
-
 @router.get("/perfil")
 def perfil(usuario=Depends(obtener_usuario_actual)):
     return {"nombre": usuario.nombre, "email": usuario.email}
-
 
 @router.get("/all-sesions")
 def get_all_sesions(
@@ -164,7 +152,6 @@ def get_all_sesions(
             detail=str(error)
         )
 
-
 @router.get("/materias")
 def get_materias(db: Session = Depends(get_db), usuario=Depends(obtener_usuario_actual)):
     return sorted(
@@ -172,18 +159,11 @@ def get_materias(db: Session = Depends(get_db), usuario=Depends(obtener_usuario_
         key=str.casefold
     )
 
-
-# ==============================================================================
-# --- TAREA 5 & 6: Endpoints para el Flujo de Solicitudes y Lista de Espera ---
-# ==============================================================================
-
-# Endpoint HTTP POST: Permite que un estudiante autenticado solicite unirse a una sesión
-# o ingrese a la lista de espera si la capacidad ya está al 100% (cupo lleno).
 @router.post("/sesiones/{sesion_id}/solicitar")
 def endpoint_solicitar_unirse(
-    sesion_id: int,                          # ID numérico de la sesión en la URL (parámetro de ruta)
-    db: Session = Depends(get_db),           # Inyección de dependencia: sesión activa de la BD
-    usuario=Depends(obtener_usuario_actual),  # Inyección de dependencia: usuario autenticado vía JWT
+    sesion_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
 ):
     """
     TAREA 6 (Defensa):
@@ -192,13 +172,9 @@ def endpoint_solicitar_unirse(
     3. Retorna un JSON con el mensaje amigable, el estado asignado y su posición FIFO en la fila.
     """
     try:
-        # Paso 1: Llamar a la función del repositorio pasando la BD, el ID de sesión y el ID del alumno
         solicitud = solicitar_unirse(db, sesion_id, usuario.id)
 
-        # Paso 2: Evaluar si el estudiante ingresó a la lista de espera (porque la sesión estaba llena)
         if solicitud.estado == "en_espera":
-            # Paso 3: Consulta SQL para calcular el puesto ordinal (1º, 2º, etc.) en orden FIFO
-            # Cuenta cuántas personas entraron en espera antes (fecha menor) o al mismo tiempo (menor ID)
             posicion = db.scalar(
                 select(func.count()).select_from(Inscripcion).where(
                     Inscripcion.sesion_id == sesion_id,
@@ -211,36 +187,26 @@ def endpoint_solicitar_unirse(
                         )
                     )
                 )
-            ) or 1  # Si no hay anteriores, su posición es la número 1
+            ) or 1
 
-            # Paso 4: Devolver respuesta HTTP exitosa informando el número de turno en la lista
             return {
                 "mensaje": f"La sesión está llena. Has ingresado a la lista de espera en la posición #{posicion}.",
                 "estado": solicitud.estado,
                 "posicion": posicion,
             }
         else:
-            # Paso 5: Si había cupo libre, informar que la solicitud quedó pendiente de aprobación
             return {
                 "mensaje": "Solicitud enviada correctamente. Esperando aprobación del organizador.",
                 "estado": solicitud.estado,
             }
     except ValueError as error:
-        # Paso 6: Si falló alguna regla (ej. solicitud duplicada, sesión cerrada o fecha pasada),
-        # se devuelve un código HTTP 400 (Bad Request) con el mensaje de error explicativo
         raise HTTPException(status_code=400, detail=str(error))
 
-
-# ==============================================================================
-# --- TAREA 6: Endpoint para Salir de la Sesión y Promover Lista de Espera ---
-# ==============================================================================
-
-# Endpoint HTTP POST: Permite que un estudiante abandone la sesión o cancele su lista de espera
 @router.post("/sesiones/{sesion_id}/salir")
 def endpoint_salir_de_sesion(
-    sesion_id: int,                          # ID numérico de la sesión que el usuario desea abandonar
-    db: Session = Depends(get_db),           # Inyección de dependencia: conexión a la base de datos
-    usuario=Depends(obtener_usuario_actual),  # Inyección de dependencia: datos del usuario logueado
+    sesion_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
 ):
     """
     TAREA 6 (Defensa - REGLA CENTRAL):
@@ -251,27 +217,18 @@ def endpoint_salir_de_sesion(
         * Simplemente se retira de la fila sin alterar los cupos de los demás.
     """
     try:
-        # Paso 1: Ejecutar la lógica de abandono y promoción atómica en el repositorio
         resultado = salir_de_sesion(db, sesion_id, usuario.id)
 
-        # Paso 2: Devolver el resultado con el mensaje y detalles de si alguien fue promovido
         return resultado
     except ValueError as error:
-        # Paso 3: Si el usuario no estaba inscrito o la sesión no existe, responder con HTTP 400
         raise HTTPException(status_code=400, detail=str(error))
 
-
-# ==============================================================================
-# --- TAREA 7: Endpoints para Reprogramar Sesión y Reconfirmar Asistencia ---
-# ==============================================================================
-
-# Endpoint HTTP POST: Permite que el organizador cambie la fecha u horario de la sesión
 @router.post("/sesiones/{sesion_id}/reprogramar")
 def endpoint_reprogramar_sesion(
-    sesion_id: int,                          # ID numérico de la sesión en la URL
-    datos: ReprogramarSesion,                # Payload validado: nueva fecha y motivo
-    db: Session = Depends(get_db),           # Inyección de dependencia: sesión de base de datos
-    usuario=Depends(obtener_usuario_actual),  # Inyección de dependencia: organizador autenticado
+    sesion_id: int,
+    datos: ReprogramarSesion,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
 ):
     """
     TAREA 7 (Defensa):
@@ -292,13 +249,11 @@ def endpoint_reprogramar_sesion(
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error))
 
-
-# Endpoint HTTP POST: Permite que un participante acepte la nueva fecha reprogramada
 @router.post("/sesiones/{sesion_id}/reconfirmar")
 def endpoint_reconfirmar_participacion(
-    sesion_id: int,                          # ID numérico de la sesión que fue reprogramada
-    db: Session = Depends(get_db),           # Inyección de dependencia: conexión a BD
-    usuario=Depends(obtener_usuario_actual),  # Inyección de dependencia: estudiante autenticado
+    sesion_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(obtener_usuario_actual),
 ):
     """
     TAREA 7 (Defensa):
@@ -315,8 +270,6 @@ def endpoint_reconfirmar_participacion(
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error))
 
-
-# Endpoint de compatibilidad para inscripciones directas en pruebas heredadas
 @router.post("/sesiones/{sesion_id}/inscribirse")
 def inscribirse(
     sesion_id: int,
@@ -332,8 +285,6 @@ def inscribirse(
         )
     return {"mensaje": "Te inscribiste en la sesión correctamente."}
 
-
-# Endpoint para que el organizador consulte todas las solicitudes recibidas en sus sesiones
 @router.get("/organizador/solicitudes")
 def get_solicitudes_organizador(
     sesion_id: int | None = None,
@@ -343,17 +294,14 @@ def get_solicitudes_organizador(
     """
     TAREA 5: Retorna todas las solicitudes pendientes o resueltas de las sesiones creadas por el organizador.
     """
-    # Consulta en la base de datos las solicitudes dirigidas a este organizador
     return listar_solicitudes_organizador(db, usuario.id, sesion_id)
 
-
-# Endpoint para que el organizador acepte o rechace una solicitud específica
 @router.post("/solicitudes/{sesion_id}/usuarios/{solicitante_id}/responder")
 @router.post("/solicitudes/{sesion_id}/{solicitante_id}/responder")
 def endpoint_responder_solicitud(
     sesion_id: int,
     solicitante_id: int,
-    data: ResponderSolicitud,  # Valida que data.decision sea 'aceptar' o 'rechazar'
+    data: ResponderSolicitud,
     db: Session = Depends(get_db),
     usuario=Depends(obtener_usuario_actual),
 ):
@@ -362,7 +310,6 @@ def endpoint_responder_solicitud(
     Si acepta, se descuenta un cupo disponible. La decisión queda guardada de forma persistente.
     """
     try:
-        # Ejecuta la decisión verificando que quien responde sea el organizador de la sesión
         inscripcion = responder_solicitud(db, sesion_id, solicitante_id, usuario.id, data.decision)
         verbo = "aceptada" if data.decision == "aceptar" else "rechazada"
         return {
@@ -370,14 +317,10 @@ def endpoint_responder_solicitud(
             "estado": inscripcion.estado,
         }
     except PermissionError as error:
-        # Si un usuario intenta responder una sesión ajena, se niega el acceso con HTTP 403 Forbidden
         raise HTTPException(status_code=403, detail=str(error))
     except ValueError as error:
-        # Errores de validación (sesión inexistente, sin cupos, etc.)
         raise HTTPException(status_code=400, detail=str(error))
 
-
-# Endpoint para que el estudiante consulte sus propias solicitudes enviadas
 @router.get("/mis-solicitudes")
 def get_mis_solicitudes(
     db: Session = Depends(get_db),
@@ -389,11 +332,9 @@ def get_mis_solicitudes(
     """
     return listar_mis_solicitudes(db, usuario.id)
 
-
 @router.post("/logout")
 def cerrar_sesion(usuario=Depends(obtener_usuario_actual)):
     return {"mensaje": "Sesión cerrada correctamente."}
-
 
 @router.post("/recuperar-password")
 def recuperar_password(data: RecuperarPassword, db: Session = Depends(get_db)):
@@ -403,7 +344,7 @@ def recuperar_password(data: RecuperarPassword, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=404, detail="No existe una cuenta con ese correo"
         )
-    
+
     codigo = str(secrets.randbelow(900000) + 100000)
     usuario.reset_code = codigo
     db.commit()
@@ -414,23 +355,22 @@ def recuperar_password(data: RecuperarPassword, db: Session = Depends(get_db)):
         "nota": "En un sistema real, este código se enviaría por correo.",
     }
 
-
 @router.post("/cambiar-password")
 def cambiar_password(data: CambiarPassword, db: Session = Depends(get_db)):
     usuario = get_user_by_email(db, normalizar_email(data.email))
-    
+
     if not usuario:
         raise HTTPException(
             status_code=404, 
             detail="No existe esa cuenta"
         )
-    
+
     if not usuario.reset_code or not secrets.compare_digest(data.codigo.strip(), usuario.reset_code):
         raise HTTPException(
             status_code=400, 
             detail="Código de recuperación no válido"
         )
-    
+
     validar_password(data.nueva_password)
     usuario.password_hash = hash_password(data.nueva_password)
     usuario.reset_code = ""
@@ -438,31 +378,24 @@ def cambiar_password(data: CambiarPassword, db: Session = Depends(get_db)):
 
     return {"mensaje": "Contraseña cambiada correctamente."}
 
-
-# Actualización directa de contraseña desde 'Mis datos' (usuario autenticado)
 @router.post("/mis-datos/cambiar-password")
 def cambiar_password_autenticado(
     data: ActualizarPasswordPerfil,
     db: Session = Depends(get_db),
     usuario=Depends(obtener_usuario_actual),
 ):
-    # Verificar que la contraseña actual proporcionada coincida con la almacenada
     if not verificar_password(data.password_actual, usuario.password_hash):
         raise HTTPException(
             status_code=400,
             detail="La contraseña actual ingresada es incorrecta."
         )
 
-    # Validar formato y longitud de la nueva contraseña
     validar_password(data.nueva_password)
 
-    # Actualizar hash en base de datos
     usuario.password_hash = hash_password(data.nueva_password)
     db.commit()
 
     return {"mensaje": "¡Tu contraseña ha sido actualizada exitosamente!"}
-
-
 
 @router.post("/guardar-nuevo")
 def crear_sesion(
@@ -483,7 +416,6 @@ def crear_sesion(
 
     return {"mensaje": "Sesión de estudio registrada correctamente.", "id": sesion.id}
 
-
 @router.post("/cerrar-inscripciones")
 def cerrar_inscripciones(
     data: SesionDeEstudio,
@@ -497,14 +429,13 @@ def cerrar_inscripciones(
             status_code=400, 
             detail="No se encontró una sesión única de este usuario."
         )
-    
+
     try:
         cerrar_inscripciones_db(db, coincidencias[0].id, usuario.id)
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error))
-    
-    return {"mensaje": "Estado de inscripciones modificado correctamente."}
 
+    return {"mensaje": "Estado de inscripciones modificado correctamente."}
 
 @router.get("/historial-sesiones")
 def get_historial(
@@ -512,11 +443,6 @@ def get_historial(
     usuario=Depends(obtener_usuario_actual),
 ):
     return obtener_historial(db, usuario.id)
-
-
-# =============================================================================
-# --- TAREA 8: ENDPOINTS PARA ASISTENCIA, JUSTIFICACIONES Y AUDITORÍA ---
-# =============================================================================
 
 @router.post("/sesiones/{sesion_id}/finalizar")
 def endpoint_finalizar_sesion(
@@ -536,7 +462,6 @@ def endpoint_finalizar_sesion(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-
 @router.get("/sesiones/{sesion_id}/asistencia")
 def endpoint_consultar_asistencia(
     sesion_id: int,
@@ -555,7 +480,6 @@ def endpoint_consultar_asistencia(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
 
 @router.post("/sesiones/{sesion_id}/asistencia")
 def endpoint_registrar_asistencia(
@@ -578,7 +502,6 @@ def endpoint_registrar_asistencia(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-
 @router.post("/sesiones/{sesion_id}/justificar")
 def endpoint_presentar_justificacion(
     sesion_id: int,
@@ -599,7 +522,6 @@ def endpoint_presentar_justificacion(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
 
 @router.post("/sesiones/{sesion_id}/usuarios/{estudiante_id}/responder-justificacion")
 def endpoint_responder_justificacion(
@@ -630,10 +552,6 @@ def endpoint_responder_justificacion(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-
-# ==============================================================================
-# --- TAREA 9: CANCELAR UNA SESIÓN DE ESTUDIO (StudyMatch) ---
-# ==============================================================================
 @router.post("/sesiones/{sesion_id}/cancelar")
 def endpoint_cancelar_sesion(
     sesion_id: int,
@@ -661,10 +579,6 @@ def endpoint_cancelar_sesion(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-
-# ==============================================================================
-# --- CLASE 21: RUTAS DE ANALÍTICA DE INTERACCIÓN (TELEMETRÍA) ---
-# ==============================================================================
 @router.post("/eventos", status_code=status.HTTP_201_CREATED)
 def endpoint_registrar_evento(
     data: EventoCreate,
@@ -685,7 +599,6 @@ def endpoint_registrar_evento(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-
 @router.get("/eventos")
 @router.get("/analitica/metricas")
 def endpoint_obtener_analitica(
@@ -700,11 +613,6 @@ def endpoint_obtener_analitica(
         return obtener_resumen_analitica(db)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
-
-# ==============================================================================
-# --- TAREA 10: ENDPOINTS DE MIS DATOS, DESCARGA Y ELIMINACIÓN HONESTA ---
-# ==============================================================================
 
 @router.get("/mis-datos")
 def endpoint_ver_mis_datos(
@@ -721,7 +629,6 @@ def endpoint_ver_mis_datos(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-
 @router.get("/mis-datos/descargar")
 def endpoint_descargar_mis_datos(
     formato: Literal["json", "csv"] = "json",
@@ -736,7 +643,6 @@ def endpoint_descargar_mis_datos(
         expediente = obtener_expediente_mis_datos(db, usuario.id)
 
         if formato == "csv":
-            # Generar contenido en CSV estructurado
             contenido_csv = exportar_mis_datos_csv(expediente)
             return Response(
                 content=contenido_csv,
@@ -746,7 +652,6 @@ def endpoint_descargar_mis_datos(
                 },
             )
         else:
-            # Generar contenido en JSON indentado y legible
             import json
             contenido_json = json.dumps(expediente, indent=2, ensure_ascii=False)
             return Response(
@@ -758,7 +663,6 @@ def endpoint_descargar_mis_datos(
             )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
 
 @router.post("/cuenta/eliminar")
 def endpoint_eliminar_cuenta(
@@ -781,8 +685,6 @@ def endpoint_eliminar_cuenta(
             motivo_cancelacion_sesiones=data.motivo_cancelacion_sesiones,
         )
 
-        # Si la regla de la aplicación bloqueó la eliminación (ej. sesiones activas sin motivo)
-        # se responde con HTTP 400 Bad Request detallando exactamente por qué y qué hacer
         if resultado.get("bloqueado"):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -796,5 +698,4 @@ def endpoint_eliminar_cuenta(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
 

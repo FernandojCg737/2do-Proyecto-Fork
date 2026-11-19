@@ -3,11 +3,6 @@ import { Alert, AuthCard, Input } from "./Components";
 import { Link } from "react-router-dom";
 import { apiRequest } from "./api";
 
-
-
-
-
-
 export default function Recover() {
   const [email, setEmail] = useState("");
   const [codigo, setCodigo] = useState("");
