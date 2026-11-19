@@ -157,7 +157,7 @@ export default function Dashboard({ user }) {
     try {
       const res = await apiRequest(`/sesiones/${modalReprogramar.id}/reprogramar`, {
         method: "POST",
-        body: JSON.stringify({ nueva_fecha: reprogFecha, motivo: reprogMotivo }),
+        body: JSON.stringify({ fecha: reprogFecha, nueva_fecha: reprogFecha, motivo: reprogMotivo }),
       });
       setMensaje(res.mensaje || "Sesión reprogramada correctamente.");
       setModalReprogramar(null);
