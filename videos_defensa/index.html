@@ -19,7 +19,7 @@
     .header { text-align: center; max-width: 900px; margin: 0 auto 32px; }
     .header h1 { font-size: 28px; margin-bottom: 8px; color: #fff; }
     .header p { color: var(--text-muted); font-size: 15px; }
-    .badge-info { display: inline-block; background: #312e81; color: #a5b4fc; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; margin-top: 10px; }
+    .badge-info { display: inline-block; background: #312e81; color: #a5b4fc; padding: 4px 14px; border-radius: 9999px; font-size: 13px; font-weight: 700; margin-top: 10px; border: 1px solid #6366f1; }
     .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
     @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
     .player-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
@@ -27,14 +27,16 @@
     .video-info { margin-top: 16px; }
     .video-info h2 { font-size: 20px; color: #fff; margin-bottom: 8px; }
     .video-info p { color: var(--text-muted); font-size: 14px; margin-bottom: 12px; }
-    .downloads { display: flex; gap: 10px; }
-    .btn-dl { background: var(--primary); color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; }
+    .downloads { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-dl { background: var(--primary); color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block; }
     .btn-dl:hover { background: var(--primary-hover); }
-    .playlist { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; max-height: 600px; overflow-y: auto; }
+    .playlist { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; max-height: 640px; overflow-y: auto; }
     .playlist h3 { font-size: 16px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
     .item { padding: 12px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
     .item:hover { background: rgba(255,255,255,0.05); }
     .item.active { background: #312e81; border-color: var(--primary); }
+    .item.featured { background: rgba(79, 70, 229, 0.25); border-color: #6366f1; }
+    .item.featured.active { background: #4338ca; }
     .item h4 { font-size: 14px; margin-bottom: 4px; color: #fff; }
     .item p { font-size: 12px; color: var(--text-muted); }
   </style>
@@ -43,78 +45,127 @@
   <div class="header">
     <h1>StudyMatch · Video Manual de Usuario para Defensa</h1>
     <p>Proyecto 2 · Interacción Hombre-Computador (IHC 2026-2) · Grabaciones con Cursor Visible, Clics Guiados y Banners de Pasos</p>
-    <span class="badge-info">✨ Modo Manual de Usuario Activo: Cada acción, botón y regla está señalizada y explicada</span>
+    <span class="badge-info">✨ Video Unificado Completo (06:06 min) con Diapositivas de Separación</span>
   </div>
   <div class="container">
     <div class="player-card">
       <video id="reproductor" controls autoplay>
-        <source id="source-mp4" src="01_flujo_principal_login_catalogo.mp4" type="video/mp4">
-        <source id="source-webm" src="01_flujo_principal_login_catalogo.webm" type="video/webm">
+        <source id="source-mp4" src="video_defensa_completo.mp4" type="video/mp4">
         Tu navegador no soporta reproducción de video HTML5.
       </video>
       <div class="video-info">
-        <h2 id="video-titulo">Flujo Principal · Login y Catálogo de Sesiones</h2>
-        <p id="video-desc">Autenticación de usuario con datos semilla, navegación al catálogo y filtrado dinámico de materias.</p>
+        <h2 id="video-titulo">🎬 Video Completo · Defensa Proyecto 2 (Todos los Flujos)</h2>
+        <p id="video-desc">Recorrido unificado continuo con diapositivas de separación entre cada flujo. Muestra Tarea 6 (FIFO), Tarea 7 (Reprogramación con reconfirmación), Tarea 8 (Asistencia), Tarea 9 (Cancelación y Analítica), Clase 22 (Honestidad sin patrones oscuros), Tarea 10 (Salida honesta) y Diseño Responsivo Móvil.</p>
         <div class="downloads">
-          <a id="dl-mp4" class="btn-dl" href="01_flujo_principal_login_catalogo.mp4" download>Descargar .MP4</a>
-          <a id="dl-webm" class="btn-dl" style="background:#334155;" href="01_flujo_principal_login_catalogo.webm" download>Descargar .WebM</a>
+          <a id="dl-mp4" class="btn-dl" href="video_defensa_completo.mp4" download>Descargar .MP4 Completo (9.7 MB)</a>
         </div>
       </div>
     </div>
     <div class="playlist">
-      <h3>Lista de Reproducción (8 Videos)</h3>
-      
-        <div class="item active" onclick="cargar(0)">
-          <h4>Flujo Principal · Login y Catálogo de Sesiones</h4>
-          <p>Autenticación de usuario con datos semilla, navegación al catálogo y filtra...</p>
-        </div>
-      
-        <div class="item " onclick="cargar(1)">
-          <h4>Tarea 6 · Lista de Espera Transparente (FIFO)</h4>
-          <p>Sesión llena con cupo 1, Brayan entra en espera (Lugar #1), Ana abandona y ...</p>
-        </div>
-      
-        <div class="item " onclick="cargar(2)">
-          <h4>Tarea 7 · Reprogramación Ética y Reconfirmación</h4>
-          <p>Sesión creada para fecha futura (28/11/2026), organizador posterga al 05/12...</p>
-        </div>
-      
-        <div class="item " onclick="cargar(3)">
-          <h4>Tarea 8 · Asistencia y Justificaciones Éticas</h4>
-          <p>Toma de asistencia (presente/ausente), solicitud de justificación por parte...</p>
-        </div>
-      
-        <div class="item " onclick="cargar(4)">
-          <h4>Tarea 9 · Cancelación Responsable y Telemetría</h4>
-          <p>Cancelación formal de sesión con motivo visible para los compañeros y visua...</p>
-        </div>
-      
-        <div class="item " onclick="cargar(5)">
-          <h4>Clase 22 · Erradicación de Patrones Oscuros</h4>
-          <p>Principio de Honestidad: cálculo matemático de disponibilidad real, sin fal...</p>
-        </div>
-      
-        <div class="item " onclick="cargar(6)">
-          <h4>Tarea 10 · Mis Datos y Salida Honesta (La Regla Difícil)</h4>
-          <p>Inspección de expediente, descarga en formatos abiertos (JSON/CSV), intento...</p>
-        </div>
-      
-        <div class="item " onclick="cargar(7)">
-          <h4>Diseño Responsivo · Viewport Móvil (390x844)</h4>
-          <p>Header minimalista, apertura de Menú Hamburguesa drawer, auto-layout vertic...</p>
-        </div>
-      
+      <h3>Lista de Reproducción (9 Videos)</h3>
+      <div class="item featured active" onclick="cargar(0)">
+        <h4>🌟 Video Completo Unificado (06:06 min)</h4>
+        <p>Todos los 8 flujos continuos con diapositivas de separación.</p>
+      </div>
+      <div class="item" onclick="cargar(1)">
+        <h4>01. Flujo Principal · Login y Catálogo</h4>
+        <p>Autenticación con credenciales limpias y búsqueda en catálogo.</p>
+      </div>
+      <div class="item" onclick="cargar(2)">
+        <h4>02. Tarea 6 · Lista de Espera FIFO</h4>
+        <p>Sesión llena 1/1, ingreso a espera #1, abandono y ascenso automático.</p>
+      </div>
+      <div class="item" onclick="cargar(3)">
+        <h4>03. Tarea 7 · Reprogramación Ética</h4>
+        <p>Cambio de fecha (05/12), motivo obligatorio y reconfirmación.</p>
+      </div>
+      <div class="item" onclick="cargar(4)">
+        <h4>04. Tarea 8 · Asistencia y Justificaciones</h4>
+        <p>Toma de asistencia (presente/ausente) y justificaciones.</p>
+      </div>
+      <div class="item" onclick="cargar(5)">
+        <h4>05. Tarea 9 · Cancelación y Analítica</h4>
+        <p>Cancelación formal y embudos de telemetría en /analitica.</p>
+      </div>
+      <div class="item" onclick="cargar(6)">
+        <h4>06. Clase 22 · Patrones Oscuros</h4>
+        <p>Principio de Honestidad: cupos reales matemáticos.</p>
+      </div>
+      <div class="item" onclick="cargar(7)">
+        <h4>07. Tarea 10 · Salida Honesta</h4>
+        <p>Expediente JSON/CSV y bloqueo preventivo de eliminación.</p>
+      </div>
+      <div class="item" onclick="cargar(8)">
+        <h4>08. Diseño Responsivo · Menú Móvil</h4>
+        <p>Pantalla 390x844 con drawer hamburguesa y auto-layout.</p>
+      </div>
     </div>
   </div>
   <script>
-    const videos = [{"id":"01_flujo_principal_login_catalogo","titulo":"Flujo Principal · Login y Catálogo de Sesiones","descripcion":"Autenticación de usuario con datos semilla, navegación al catálogo y filtrado dinámico de materias.","webm":"01_flujo_principal_login_catalogo.webm","mp4":"01_flujo_principal_login_catalogo.mp4"},{"id":"02_tarea6_lista_espera_fifo","titulo":"Tarea 6 · Lista de Espera Transparente (FIFO)","descripcion":"Sesión llena con cupo 1, Brayan entra en espera (Lugar #1), Ana abandona y Brayan asciende automáticamente.","webm":"02_tarea6_lista_espera_fifo.webm","mp4":"02_tarea6_lista_espera_fifo.mp4"},{"id":"03_tarea7_reprogramacion_reconfirmacion","titulo":"Tarea 7 · Reprogramación Ética y Reconfirmación","descripcion":"Sesión creada para fecha futura (28/11/2026), organizador posterga al 05/12/2026 con motivo formal y alumna reconfirma.","webm":"03_tarea7_reprogramacion_reconfirmacion.webm","mp4":"03_tarea7_reprogramacion_reconfirmacion.mp4"},{"id":"04_tarea8_asistencia_y_justificaciones","titulo":"Tarea 8 · Asistencia y Justificaciones Éticas","descripcion":"Toma de asistencia (presente/ausente), solicitud de justificación por parte del alumno y resolución con motivo.","webm":"04_tarea8_asistencia_y_justificaciones.webm","mp4":"04_tarea8_asistencia_y_justificaciones.mp4"},{"id":"05_tarea9_cancelacion_y_analitica","titulo":"Tarea 9 · Cancelación Responsable y Telemetría","descripcion":"Cancelación formal de sesión con motivo visible para los compañeros y visualización del panel de embudos en /analitica.","webm":"05_tarea9_cancelacion_y_analitica.webm","mp4":"05_tarea9_cancelacion_y_analitica.mp4"},{"id":"06_clase22_patrones_oscuros_honestidad","titulo":"Clase 22 · Erradicación de Patrones Oscuros","descripcion":"Principio de Honestidad: cálculo matemático de disponibilidad real, sin falsas urgencias ni datos manipulados.","webm":"06_clase22_patrones_oscuros_honestidad.webm","mp4":"06_clase22_patrones_oscuros_honestidad.mp4"},{"id":"07_tarea10_salida_honesta_expediente","titulo":"Tarea 10 · Mis Datos y Salida Honesta (La Regla Difícil)","descripcion":"Inspección de expediente, descarga en formatos abiertos (JSON/CSV), intento de borrado bloqueado y salida honesta.","webm":"07_tarea10_salida_honesta_expediente.webm","mp4":"07_tarea10_salida_honesta_expediente.mp4"},{"id":"08_responsivo_movil_hamburguesa","titulo":"Diseño Responsivo · Viewport Móvil (390x844)","descripcion":"Header minimalista, apertura de Menú Hamburguesa drawer, auto-layout vertical y adaptación a teclado virtual.","webm":"08_responsivo_movil_hamburguesa.webm","mp4":"08_responsivo_movil_hamburguesa.mp4"}];
+    const videos = [
+      {
+        id: "video_defensa_completo",
+        titulo: "🎬 Video Completo · Defensa Proyecto 2 (Todos los Flujos)",
+        descripcion: "Recorrido unificado continuo (06:06 min) con diapositivas de separación entre cada flujo. Muestra Tarea 6 (FIFO), Tarea 7 (Reprogramación con reconfirmación), Tarea 8 (Asistencia), Tarea 9 (Cancelación y Analítica), Clase 22 (Honestidad sin patrones oscuros), Tarea 10 (Salida honesta) y Diseño Responsivo Móvil.",
+        mp4: "video_defensa_completo.mp4"
+      },
+      {
+        id: "01_flujo_principal_login_catalogo",
+        titulo: "Flujo Principal · Login y Catálogo de Sesiones",
+        descripcion: "Autenticación de usuario con datos semilla, navegación al catálogo y filtrado dinámico de materias.",
+        mp4: "01_flujo_principal_login_catalogo.mp4"
+      },
+      {
+        id: "02_tarea6_lista_espera_fifo",
+        titulo: "Tarea 6 · Lista de Espera Transparente (FIFO)",
+        descripcion: "Sesión llena con cupo 1, Brayan entra en espera (Lugar #1), Ana abandona y Brayan asciende automáticamente.",
+        mp4: "02_tarea6_lista_espera_fifo.mp4"
+      },
+      {
+        id: "03_tarea7_reprogramacion_reconfirmacion",
+        titulo: "Tarea 7 · Reprogramación Ética y Reconfirmación",
+        descripcion: "Sesión creada para fecha futura (28/11/2026), organizador posterga al 05/12/2026 con motivo formal y alumna reconfirma.",
+        mp4: "03_tarea7_reprogramacion_reconfirmacion.mp4"
+      },
+      {
+        id: "04_tarea8_asistencia_y_justificaciones",
+        titulo: "Tarea 8 · Asistencia y Justificaciones Éticas",
+        descripcion: "Toma de asistencia (presente/ausente), solicitud de justificación por parte del alumno y resolución con motivo.",
+        mp4: "04_tarea8_asistencia_y_justificaciones.mp4"
+      },
+      {
+        id: "05_tarea9_cancelacion_y_analitica",
+        titulo: "Tarea 9 · Cancelación Responsable y Telemetría",
+        descripcion: "Cancelación formal de sesión con motivo visible para los compañeros y visualización del panel de embudos en /analitica.",
+        mp4: "05_tarea9_cancelacion_y_analitica.mp4"
+      },
+      {
+        id: "06_clase22_patrones_oscuros_honestidad",
+        titulo: "Clase 22 · Erradicación de Patrones Oscuros",
+        descripcion: "Principio de Honestidad: cálculo matemático de disponibilidad real, sin falsas urgencias ni datos manipulados.",
+        mp4: "06_clase22_patrones_oscuros_honestidad.mp4"
+      },
+      {
+        id: "07_tarea10_salida_honesta_expediente",
+        titulo: "Tarea 10 · Mis Datos y Salida Honesta (La Regla Difícil)",
+        descripcion: "Inspección de expediente, descarga en formatos abiertos (JSON/CSV), intento de borrado bloqueado y salida honesta.",
+        mp4: "07_tarea10_salida_honesta_expediente.mp4"
+      },
+      {
+        id: "08_responsivo_movil_hamburguesa",
+        titulo: "Diseño Responsivo · Viewport Móvil (390x844)",
+        descripcion: "Header minimalista, apertura de Menú Hamburguesa drawer, auto-layout vertical y adaptación a teclado virtual.",
+        mp4: "08_responsivo_movil_hamburguesa.mp4"
+      }
+    ];
+
     function cargar(idx) {
       document.querySelectorAll('.item').forEach((el, i) => el.classList.toggle('active', i === idx));
       const v = videos[idx];
       document.getElementById('video-titulo').innerText = v.titulo;
       document.getElementById('video-desc').innerText = v.descripcion;
       document.getElementById('dl-mp4').href = v.mp4;
-      document.getElementById('dl-webm').href = v.webm;
+      document.getElementById('dl-mp4').innerText = "Descargar " + v.mp4;
       const r = document.getElementById('reproductor');
       r.src = v.mp4;
       r.play();
