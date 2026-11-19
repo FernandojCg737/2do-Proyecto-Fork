@@ -492,53 +492,6 @@ export default function Dashboard({ user }) {
                   </Link>
                 </div>
                 <div className="card-body p-3 p-md-4">
-                  {/* ALERTA RÁPIDA: Solicitudes pendientes de respuesta (Garantiza compatibilidad de tests) */}
-                  {pendientesOrganizador.length > 0 && (
-                    <div className="alert alert-warning border-warning shadow-sm mb-4 rounded-3 p-3">
-                      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                        <h3 className="h6 text-danger fw-bold mb-0 d-flex align-items-center gap-2">
-                          <span>⚠️</span>
-                          <span>Tienes {pendientesOrganizador.length} solicitud{pendientesOrganizador.length > 1 ? "es" : ""} pendiente{pendientesOrganizador.length > 1 ? "s" : ""} de responder</span>
-                        </h3>
-                        <span className="badge bg-danger">{pendientesOrganizador.length} urgente{pendientesOrganizador.length > 1 ? "s" : ""}</span>
-                      </div>
-                      <div className="d-flex flex-column gap-2 mt-2">
-                        {pendientesOrganizador.map((sol) => (
-                          <div
-                            key={`${sol.sesion_id}-${sol.solicitante_id}`}
-                            className="bg-white p-3 rounded-2 border shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-2"
-                          >
-                            <div style={{ minWidth: 0, flex: "1 1 200px" }}>
-                              <strong className="text-dark d-block text-break">{sol.solicitante_nombre}</strong>
-                              <span className="text-muted small d-block text-break">{sol.solicitante_email}</span>
-                              <span className="small text-secondary">
-                                Sesión: <strong>{sol.sesion_nombre}</strong> ({sol.materia})
-                              </span>
-                            </div>
-                            <div className="d-flex gap-2 flex-wrap">
-                              <button
-                                type="button"
-                                className="btn btn-success btn-sm px-3 fw-semibold shadow-sm"
-                                disabled={procesando === `${sol.sesion_id}-${sol.solicitante_id}`}
-                                onClick={() => responder(sol.sesion_id, sol.solicitante_id, "aceptar")}
-                              >
-                                ✓ Aceptar
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-outline-danger btn-sm px-3"
-                                disabled={procesando === `${sol.sesion_id}-${sol.solicitante_id}`}
-                                onClick={() => responder(sol.sesion_id, sol.solicitante_id, "rechazar")}
-                              >
-                                ✕ Rechazar
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {/* GRID DE RECUADROS DE SESIONES CREADAS (SOLICITUD EXPLÍCITA DEL USUARIO CON CAPTURA) */}
                   {misSesiones.length === 0 ? (
                     <div className="text-center py-5 text-muted bg-light rounded-4">
@@ -777,6 +730,175 @@ export default function Dashboard({ user }) {
                       </div>
                     </div>
                   )}
+
+                  {/* SECCIÓN ORIGINAL (FIGMA / DOCS / REPORTE) SOLICITADA POR EL USUARIO DEBAJO DE LAS TARJETAS */}
+                  <div className="mt-4 pt-3 border-top d-flex flex-column gap-3">
+                    {/* TAREA 8: Acceso rápido al Control de Asistencia para el Organizador */}
+                    {(solicitudesOrganizador.length > 0 || misSesiones.length > 0) && (
+                      <div className="card bg-primary-subtle border-0 rounded-3 p-3 mb-2">
+                        <div className="mb-2">
+                          <h3 className="h6 fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                            <span>📋</span>
+                            <span>Control de Asistencia y Justificaciones</span>
+                          </h3>
+                          <p className="text-secondary small mb-0">
+                            Gestiona el registro de presentes o ausentes y resuelve las justificaciones de tus sesiones activas.
+                          </p>
+                        </div>
+                        {/* Botones de asistencia responsivos con wrap y soporte para nombres largos */}
+                        <div className="d-flex flex-column flex-sm-row flex-wrap gap-2 mt-2">
+                          {Array.from(
+                            new Map(
+                              [
+                                ...solicitudesOrganizador.map((s) => [s.sesion_id, { id: s.sesion_id, nombre: s.sesion_nombre }]),
+                                ...misSesiones.map((s) => [s.id, { id: s.id, nombre: s.nombre }]),
+                              ]
+                            ).values()
+                          ).map((ses) => (
+                            <button
+                              key={ses.id}
+                              type="button"
+                              className="btn btn-primary btn-sm btn-wrap fw-semibold shadow-sm text-start py-2 px-3 w-100 w-sm-auto"
+                              style={{ maxWidth: "100%" }}
+                              onClick={() =>
+                                setModalAsistencia({ id: ses.id, nombre: ses.nombre })
+                              }
+                            >
+                              <span className="d-inline-flex align-items-center gap-2">
+                                <span>📋</span>
+                                <span className="text-break">
+                                  Tomar asistencia: <strong>{ses.nombre}</strong>
+                                </span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Subsección: Solicitudes pendientes de responder */}
+                    {pendientesOrganizador.length > 0 && (
+                      <div>
+                        <h3 className="h6 text-danger fw-bold mb-2">
+                          ⚠️ Pendientes de responder ({pendientesOrganizador.length})
+                        </h3>
+                        <div className="d-flex flex-column gap-2">
+                          {pendientesOrganizador.map((sol) => (
+                            <div
+                              key={`${sol.sesion_id}-${sol.solicitante_id}`}
+                              className="border rounded-3 p-3 bg-light shadow-sm"
+                            >
+                              <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                                <div style={{ minWidth: 0, flex: "1 1 200px" }}>
+                                  <h4 className="h6 fw-bold mb-0 text-dark text-break">
+                                    {sol.solicitante_nombre}
+                                  </h4>
+                                  <span className="text-muted small text-break d-block">
+                                    {sol.solicitante_email}
+                                  </span>
+                                </div>
+                                <span className="badge bg-warning text-dark flex-shrink-0 px-2 py-1">
+                                  ⏳ Pendiente
+                                </span>
+                              </div>
+                              <div className="small text-secondary mb-3 text-break">
+                                <strong>Sesión:</strong> {sol.sesion_nombre}{" "}
+                                <span className="badge bg-secondary-subtle text-secondary small ms-1">
+                                  {sol.materia}
+                                </span>
+                              </div>
+                              <div className="d-flex gap-2 flex-wrap">
+                                <button
+                                  type="button"
+                                  className="btn btn-success btn-sm px-3 fw-semibold shadow-sm"
+                                  disabled={procesando === `${sol.sesion_id}-${sol.solicitante_id}`}
+                                  onClick={() => responder(sol.sesion_id, sol.solicitante_id, "aceptar")}
+                                >
+                                  ✓ Aceptar
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-danger btn-sm px-3"
+                                  disabled={procesando === `${sol.sesion_id}-${sol.solicitante_id}`}
+                                  onClick={() => responder(sol.sesion_id, sol.solicitante_id, "rechazar")}
+                                >
+                                  ✕ Rechazar
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Subsección: En lista de espera */}
+                    {enEsperaOrganizador.length > 0 && (
+                      <div>
+                        <h3 className="h6 text-primary fw-bold mb-2">
+                          ⏳ En lista de espera ({enEsperaOrganizador.length})
+                        </h3>
+                        <div className="d-flex flex-column gap-2">
+                          {enEsperaOrganizador.map((sol) => (
+                            <div
+                              key={`${sol.sesion_id}-${sol.solicitante_id}`}
+                              className="border rounded-3 p-3 bg-light shadow-sm"
+                            >
+                              <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                                <div style={{ minWidth: 0, flex: "1 1 200px" }}>
+                                  <h4 className="h6 fw-bold mb-0 text-dark text-break">
+                                    {sol.solicitante_nombre}
+                                  </h4>
+                                  <span className="text-muted small text-break d-block">
+                                    {sol.solicitante_email}
+                                  </span>
+                                </div>
+                                <span className="badge bg-info text-dark flex-shrink-0 px-2 py-1">
+                                  Lugar #{sol.posicion || 1}
+                                </span>
+                              </div>
+                              <div className="small text-secondary mb-1 text-break">
+                                <strong>Sesión:</strong> {sol.sesion_nombre}{" "}
+                                <span className="badge bg-secondary-subtle text-secondary small ms-1">
+                                  {sol.materia}
+                                </span>
+                              </div>
+                              <div className="small text-muted fst-italic">
+                                ℹ️ Ingresará automáticamente a confirmado si un participante sale.
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Subsección: Historial de solicitudes respondidas */}
+                    {respondidasOrganizador.length > 0 && (
+                      <div className="mt-2">
+                        <h3 className="h6 text-muted fw-bold mb-2">
+                          Historial de solicitudes respondidas
+                        </h3>
+                        <div className="d-flex flex-column gap-2">
+                          {respondidasOrganizador.slice(0, 10).map((sol) => (
+                            <div
+                              key={`${sol.sesion_id}-${sol.solicitante_id}`}
+                              className="border rounded p-2 bg-white small d-flex justify-content-between align-items-center flex-wrap gap-2"
+                            >
+                              <div className="text-break" style={{ minWidth: 0, flex: "1 1 180px" }}>
+                                <strong>{sol.solicitante_nombre}</strong> en <em>{sol.sesion_nombre}</em>
+                              </div>
+                              <div className="flex-shrink-0">
+                                {sol.estado === "aceptada" ? (
+                                  <span className="badge bg-success">Aceptada</span>
+                                ) : (
+                                  <span className="badge bg-danger">Rechazada</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
